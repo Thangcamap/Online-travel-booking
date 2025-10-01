@@ -14,9 +14,7 @@ function App() {
             {/* Add more routes here */}
           </Routes>
         </div>
-        <div className="p-10 bg-red-500 text-white text-3xl">
-</div>
-
+        
       </Router>
     </AuthProvider>
   )
