@@ -2,6 +2,8 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import HomePage from './components/HomePage'
+import AdminDashboard from './components/AdminDashboard'
+import ProviderDashboard from './components/ProviderDashboard'
 import './App.css'
 
 function App() {
@@ -10,11 +12,12 @@ function App() {
       <Router>
         <div className="App">
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            {/* Add more routes here */}
+            {/* Test giao diện ProviderDashboard với providerId = 1 */}
+            <Route path="/" element={<ProviderDashboard providerId={1} />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/home" element={<HomePage />} />
           </Routes>
         </div>
-        
       </Router>
     </AuthProvider>
   )
