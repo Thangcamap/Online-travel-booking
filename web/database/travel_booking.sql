@@ -12,7 +12,7 @@ CREATE TABLE users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Bảng địa chỉ (dùng chung)
+-- Bảng địa chỉ dùng chung
 CREATE TABLE addresses (
   address_id VARCHAR(16) PRIMARY KEY,
   address_line1 VARCHAR(255),
@@ -25,7 +25,7 @@ CREATE TABLE addresses (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Bảng nhà cung cấp tour (provider) với phân quyền chi tiết
+-- Bảng nhà cung cấp tour (provider)
 CREATE TABLE tour_providers (
   provider_id VARCHAR(16) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL,
@@ -35,26 +35,25 @@ CREATE TABLE tour_providers (
   phone_number VARCHAR(20),
   logo_url VARCHAR(255),
   address_id VARCHAR(16),
-  role ENUM('provider_basic', 'provider_premium', 'provider_admin') DEFAULT 'provider_basic',
   status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
+  approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_provider_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   CONSTRAINT fk_provider_address FOREIGN KEY (address_id) REFERENCES addresses(address_id) ON DELETE SET NULL
 );
 
--- Bảng admin chi tiết phân quyền
+-- Bảng admin (dành riêng cho user có role = 'admin')
 CREATE TABLE admins (
   admin_id VARCHAR(16) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL UNIQUE,
-  admin_role ENUM('superadmin', 'manager', 'support') DEFAULT 'manager',
   status ENUM('active', 'inactive') DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_admin_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Bảng tours liên kết với nhà cung cấp
+-- Bảng tour
 CREATE TABLE tours (
   tour_id VARCHAR(16) PRIMARY KEY,
   provider_id VARCHAR(16) NOT NULL,
@@ -70,7 +69,7 @@ CREATE TABLE tours (
   CONSTRAINT fk_tour_provider FOREIGN KEY (provider_id) REFERENCES tour_providers(provider_id) ON DELETE CASCADE
 );
 
--- Bảng ảnh (có thể cho tour, provider, hoặc user)
+-- Bảng ảnh
 CREATE TABLE images (
   image_id VARCHAR(16) PRIMARY KEY,
   entity_type ENUM('tour', 'provider', 'user') NOT NULL,
@@ -79,10 +78,10 @@ CREATE TABLE images (
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  -- Không dùng FOREIGN KEY vì entity_type khác nhau, xử lý ở app logic
+  -- Không dùng FOREIGN KEY vì entity_type khác nhau
 );
 
--- Bảng bookings liên kết user và tour
+-- Bảng bookings
 CREATE TABLE bookings (
   booking_id VARCHAR(16) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL,
@@ -96,7 +95,7 @@ CREATE TABLE bookings (
   CONSTRAINT fk_booking_tour FOREIGN KEY (tour_id) REFERENCES tours(tour_id) ON DELETE CASCADE
 );
 
--- Bảng payments liên kết booking
+-- Bảng thanh toán
 CREATE TABLE payments (
   payment_id VARCHAR(16) PRIMARY KEY,
   booking_id VARCHAR(16) NOT NULL,
@@ -108,7 +107,7 @@ CREATE TABLE payments (
   CONSTRAINT fk_payment_booking FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE
 );
 
--- Bảng reviews liên kết user và tour
+-- Bảng đánh giá
 CREATE TABLE reviews (
   review_id VARCHAR(16) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL,
@@ -120,6 +119,8 @@ CREATE TABLE reviews (
   CONSTRAINT fk_review_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   CONSTRAINT fk_review_tour FOREIGN KEY (tour_id) REFERENCES tours(tour_id) ON DELETE CASCADE
 );
+
+-- Bảng gợi ý từ AI
 CREATE TABLE ai_recommendations (
   rec_id VARCHAR(16) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL,
