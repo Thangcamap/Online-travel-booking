@@ -1,26 +1,28 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
-import HomePage from './components/HomePage'
-import AdminDashboard from './components/AdminDashboard'
-import ProviderDashboard from './components/ProviderDashboard'
-import './App.css'
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import CreateProvided from "./features/management-provied/components/create-provied.jsx";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import "./App.css";
+
+// Khởi tạo QueryClient
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            {/* Test giao diện ProviderDashboard với providerId = 1 */}
-            <Route path="/" element={<ProviderDashboard providerId={1} />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/home" element={<HomePage />} />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
-  )
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Router>
+          <div className="App">
+            <Routes>
+              {/* Test giao diện đăng ký Provider */}
+              <Route path="/" element={<CreateProvided />} />
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
 }
 
-export default App
+export default App;
