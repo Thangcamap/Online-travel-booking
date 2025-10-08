@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Tourism - Trang chủ</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    .hero {
+      text-align: center;
+      padding: 60px 20px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #fff;
+      border-radius: var(--radius);
+      margin-bottom: 30px;
+    }
+    .hero h1 { font-size: 32px; margin-bottom: 16px; }
+    .hero p { font-size: 18px; opacity: .9; }
+    .cards { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); }
+    .card-link { text-decoration: none; color: inherit; transition: transform .2s; }
+    .card-link:hover { transform: translateY(-4px); }
+    .card i { font-size: 32px; margin-bottom: 12px; color: var(--primary); }
+    .card h3 { margin: 8px 0; font-size: 20px; }
+    .card p { color: #64748b; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌐 Smart Tourism Platform</h1>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Chào mừng đến với Smart Tourism Đà Nẵng</h1>
+      <p>Nền tảng đặt tour thông minh với AI gợi ý hành trình và thanh toán trực tuyến an toàn</p>
+    </section>
+
+    <section>
+      <div class="cards">
+        <a href="payments.html" class="card-link">
+          <div class="card">
+            <i class="fas fa-money-check-alt"></i>
+            <h3>Quản lý Thanh toán</h3>
+            <p>Xem và xử lý các giao dịch, xác nhận thanh toán qua QR</p>
+          </div>
+        </a>
+        <a href="#" class="card-link">
+          <div class="card">
+            <i class="fas fa-suitcase-rolling"></i>
+            <h3>Quản lý Tour</h3>
+            <p>Thêm, sửa, xoá tour du lịch, quản lý thông tin từ nhà cung cấp</p>
+          </div>
+        </a>
+        <a href="#" class="card-link">
+          <div class="card">
+            <i class="fas fa-user"></i>
+            <h3>Quản lý Người dùng</h3>
+            <p>Quản lý tài khoản khách hàng, nhà cung cấp và admin</p>
+          </div>
+        </a>
+        <a href="#" class="card-link">
+          <div class="card">
+            <i class="fas fa-robot"></i>
+            <h3>AI Gợi ý hành trình</h3>
+            <p>Nhận tư vấn thông minh từ chatbot AI để chọn tour phù hợp</p>
+          </div>
+        </a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
