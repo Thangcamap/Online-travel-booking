@@ -1,0 +1,3 @@
+[submodule "web/payout"]
+	path = web/payout
+	url = https://github.com/Thangcamap/payout.git
