@@ -3,9 +3,16 @@ const cors = require("cors");
 const { pool } = require("./config/mysql");
 
 const app = express();
+
+// ✅ Đặt middleware trước
 app.use(cors());
 app.use(express.json());
 
+// ✅ Import routes
+const adminRoutes = require("./src/routes/admins");
+
+// ✅ Gắn routes sau middleware
+app.use("/api/admins", adminRoutes);
 // Test route
 app.get("/", async (req, res) => {
   const t = await pool.query("SELECT 1 + 1 AS solution")
@@ -189,6 +196,8 @@ app.post('/chat', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+const providerRoutes = require("./src/routes/providers");
+app.use("/api/providers", providerRoutes);
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });

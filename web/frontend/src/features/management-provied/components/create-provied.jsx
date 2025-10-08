@@ -21,22 +21,16 @@ import { createProvider, uploadProviderImage } from "../api/create-provied";
 
 // ------------------ Validation Schema -------------------
 const formSchema = z.object({
-  companyName: z
-    .string({ required_error: "Tên công ty không được để trống." })
-    .min(3, { message: "Tên công ty phải có ít nhất 3 ký tự." }),
+  companyName: z.string().min(3, { message: "Tên công ty phải có ít nhất 3 ký tự." }),
   phoneNumber: z
-    .string({ required_error: "Số điện thoại không được để trống." })
+    .string()
     .min(10, { message: "Số điện thoại phải có ít nhất 10 chữ số." })
     .max(15, { message: "Số điện thoại không quá 15 chữ số." })
     .regex(/^[0-9]+$/, { message: "Số điện thoại chỉ chứa các chữ số." }),
-  email: z
-    .string({ required_error: "Email không được để trống." })
-    .email({ message: "Email không hợp lệ." }),
+  email: z.string().email({ message: "Email không hợp lệ." }),
   description: z.string().optional(),
   address: z.object({
-    latitude: z.any().optional(),
-    longitude: z.any().optional(),
-    addressLine1: z.string({ required_error: "Địa chỉ không được để trống." }),
+    addressLine1: z.string().min(3, { message: "Địa chỉ không được để trống." }),
     addressLine2: z.string().optional(),
   }),
 });
@@ -102,6 +96,10 @@ export function TourProviderForm() {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      companyName: "",
+      phoneNumber: "",
+      email: "",
+      description: "",
       address: { addressLine1: "", addressLine2: "" },
     },
   });
@@ -114,12 +112,13 @@ export function TourProviderForm() {
     };
   }, [images.logo.file, images.cover.file]);
 
-  // Mutation tạo provider
+  // ✅ Mutation tạo provider
   const { mutate, isLoading } = useMutation({
     mutationFn: createProvider,
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["providers"] });
-      const newProviderId = res.data?.data?.providerId;
+      const newProviderId = res.data?.provider_id; // ✅ đúng key trả về từ backend
+
       if (newProviderId && (images.logo.file || images.cover.file)) {
         uploadImageMutation.mutate({
           providerId: newProviderId,
@@ -131,7 +130,7 @@ export function TourProviderForm() {
     },
   });
 
-  // Mutation upload ảnh
+  // ✅ Mutation upload ảnh
   const uploadImageMutation = useMutation({
     mutationFn: uploadProviderImage,
     onSuccess: () => {
@@ -140,6 +139,7 @@ export function TourProviderForm() {
     },
   });
 
+  // ✅ Xử lý chọn ảnh
   const handleImageChange = useCallback((name, file) => {
     setImages((prev) => {
       if (prev[name]?.preview) URL.revokeObjectURL(prev[name].preview);
@@ -151,12 +151,23 @@ export function TourProviderForm() {
     });
   }, []);
 
+  // ✅ Gửi dữ liệu đúng định dạng backend
   const onSubmit = async (values) => {
     if (!images.logo.file) {
       setMessageFile("Logo công ty không được để trống");
       return;
     }
-    mutate(values);
+
+    const payload = {
+      user_id: 1, // ⚠️ tạm thời cố định, sau này lấy từ user login
+      company_name: values.companyName,
+      description: values.description,
+      email: values.email,
+      phone_number: values.phoneNumber,
+      address_id: null, // ⚠️ nếu bạn có bảng địa chỉ riêng thì sửa lại
+    };
+
+    mutate(payload);
   };
 
   const { companyName, phoneNumber, email, address } = form.watch();
@@ -208,7 +219,7 @@ export function TourProviderForm() {
             />
           </div>
 
-          {/* Trường thông tin */}
+          {/* Các trường nhập liệu */}
           <FormField
             control={form.control}
             name="companyName"
@@ -279,20 +290,10 @@ export function TourProviderForm() {
             )}
           />
 
-          {/* Checkbox điều khoản */}
           <PrivacyPolicy terms={terms} setTerms={setTerms} />
 
-          {/* Thông báo lỗi */}
           {messageFile && <p className="text-red-500 text-center">{messageFile}</p>}
-          {Object.keys(errors).length > 0 && (
-            <ul className="text-red-500 space-y-1 text-center">
-              {Object.entries(errors).map(([field, error]) => (
-                <li key={field}>{error.message}</li>
-              ))}
-            </ul>
-          )}
 
-          {/* Nút submit */}
           <Button type="submit" className="w-full" disabled={!isFormValid || isLoading}>
             {isLoading ? "Đang gửi..." : "Gửi yêu cầu"}
           </Button>
@@ -301,5 +302,5 @@ export function TourProviderForm() {
     </div>
   );
 }
-export default TourProviderForm;
 
+export default TourProviderForm;
