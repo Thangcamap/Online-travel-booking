@@ -4,7 +4,7 @@ CREATE TABLE users (
   name VARCHAR(100) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
-  phone_number VARCHAR(20),
+  phone_number VARCHAR(20) NOT NULL UNIQUE,
   avatar_url VARCHAR(255),
   role ENUM('user', 'provider', 'admin') NOT NULL DEFAULT 'user',
   status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
@@ -63,6 +63,7 @@ CREATE TABLE tours (
   currency VARCHAR(3) DEFAULT 'VND',
   start_date DATE,
   end_date DATE,
+  available_slots INT DEFAULT 0,              -- 🆕 số chỗ còn lại
   available BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -73,7 +74,7 @@ CREATE TABLE tours (
 CREATE TABLE images (
   image_id VARCHAR(16) PRIMARY KEY,
   entity_type ENUM('tour', 'provider', 'user') NOT NULL,
-  entity_id VARCHAR(16) NOT NULL,
+  entity_id VARCHAR(32) NOT NULL,
   image_url VARCHAR(255) NOT NULL,
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

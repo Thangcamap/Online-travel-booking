@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import CreateProvided from "./features/management-provied/components/create-provied.jsx";
 import PendingProviders from "./features/management-admin/components/PendingProviders";
+import TourManager from "./features/management-provied/components/TourManager.jsx";
 <Route path="/admin/providers" element={<PendingProviders />} />
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -21,6 +22,10 @@ function App() {
               {/* Test giao diện đăng ký Provider */}
               <Route path="/" element={<CreateProvided />} />
               <Route path="/admin/providers" element={<PendingProviders />} />
+              {/* <Route path="/provider/tours" element={<TourManager />} /> */}
+              <Route path="/provider/tours" element={<TourManager providerId="prov_test001" />} />
+
+              
             </Routes>
           </div>
         </Router>
