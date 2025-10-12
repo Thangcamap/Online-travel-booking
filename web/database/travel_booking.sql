@@ -34,6 +34,7 @@ CREATE TABLE tour_providers (
   email VARCHAR(255),
   phone_number VARCHAR(20),
   logo_url VARCHAR(255),
+  cover_url VARCHAR(255),
   address_id VARCHAR(16),
   status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
   approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',

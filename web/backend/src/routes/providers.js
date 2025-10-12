@@ -27,7 +27,20 @@ router.post("/", async (req, res) => {
   try {
     const { user_id, company_name, description, email, phone_number, address_id } = req.body;
 
-    const provider_id = "prov_" + Date.now();
+       // ✅ Kiểm tra user đã có provider chưa
+    const [existing] = await pool.query(
+      "SELECT provider_id FROM tour_providers WHERE user_id = ?",
+      [user_id]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "❌ Người dùng này đã có provider rồi. Không thể tạo thêm.",
+      });
+    }
+
+    const provider_id = "prov_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
 
     await pool.query(
       `INSERT INTO tour_providers 
@@ -48,35 +61,78 @@ router.post("/", async (req, res) => {
 });
 
 // 🖼️ Upload ảnh (logo/avatar/cover)
-router.post("/:providerId/upload", upload.fields([{ name: "avatar" }, { name: "cover" }]), async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    const files = req.files;
+router.post(
+  "/:providerId/upload",
+  upload.fields([{ name: "avatar" }, { name: "cover" }]),
+  async (req, res) => {
+    try {
+      const { providerId } = req.params;
+      const files = req.files;
 
-    let avatarUrl = null;
-    let coverUrl = null;
+      let avatarUrl = null;
+      let coverUrl = null;
 
-    if (files.avatar) {
-      avatarUrl = `/uploads/${files.avatar[0].filename}`;
-      await pool.query(`UPDATE tour_providers SET logo_url = ? WHERE provider_id = ?`, [avatarUrl, providerId]);
+      // ✅ Nếu có ảnh avatar
+      if (files.avatar) {
+        avatarUrl = `/uploads/${files.avatar[0].filename}`;
+
+        // Cập nhật logo_url trong bảng provider
+        await pool.query(
+          `UPDATE tour_providers SET logo_url = ? WHERE provider_id = ?`,
+          [avatarUrl, providerId]
+        );
+
+        // Thêm bản ghi vào bảng images
+        await pool.query(
+          `INSERT INTO images (image_id, entity_type, entity_id, image_url, description)
+           VALUES (?, 'provider', ?, ?, ?)`,
+          [
+            "img_" + Date.now(),
+            providerId,
+            avatarUrl,
+            "Ảnh logo provider",
+          ]
+        );
+      }
+
+      // ✅ Nếu có ảnh cover
+      if (files.cover) {
+        coverUrl = `/uploads/${files.cover[0].filename}`;
+
+        // (nếu có cột cover_url thì cập nhật)
+        await pool.query(
+  `UPDATE tour_providers SET logo_url = ? WHERE provider_id = ?`,
+  [coverUrl, providerId]
+);
+
+
+        // Ghi thêm vào bảng images
+        await pool.query(
+          `INSERT INTO images (image_id, entity_type, entity_id, image_url, description)
+           VALUES (?, 'provider', ?, ?, ?)`,
+          [
+            "img_" + (Date.now() + 1),
+            providerId,
+            coverUrl,
+            "Ảnh cover provider",
+          ]
+        );
+      }
+
+      res.json({
+        success: true,
+        message: "✅ Ảnh đã upload và lưu vào DB thành công!",
+        avatarUrl,
+        coverUrl,
+      });
+    } catch (error) {
+      console.error("❌ Upload image error:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Server error when uploading images." });
     }
-
-    if (files.cover) {
-      coverUrl = `/uploads/${files.cover[0].filename}`;
-      // nếu bạn có cột cover_url thì cập nhật, còn không thì bỏ qua
-    }
-
-    res.json({
-      success: true,
-      message: "Ảnh đã upload thành công!",
-      avatarUrl,
-      coverUrl,
-    });
-  } catch (error) {
-    console.error("❌ Upload image error:", error);
-    res.status(500).json({ success: false, error: "Server error when uploading images." });
   }
-});
+);
 
 // 📋 Lấy danh sách provider
 router.get("/", async (req, res) => {
