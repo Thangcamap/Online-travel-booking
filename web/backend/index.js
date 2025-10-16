@@ -27,6 +27,12 @@ app.use("/api/tours", toursRouter);
 const providerRoutes = require("./src/routes/providers");
 app.use("/api/providers", providerRoutes);
 
+const loginRoute = require("./src/routes/login");
+app.use("/api/login", loginRoute);
+
+const registerRoute = require("./src/routes/register");
+app.use("/api/register", registerRoute);
+
 // ✅ Route test
 app.get("/", async (req, res) => {
   const t = await pool.query("SELECT 1 + 1 AS solution");
