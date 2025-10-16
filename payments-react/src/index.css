@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* simple styling approximating your original HTML */
+body { @apply bg-gray-50 text-gray-800 antialiased; }
+.container { @apply max-w-6xl mx-auto p-6; }
+.card { @apply bg-white shadow rounded-lg p-6; }
+.table th { @apply text-left text-sm font-medium text-gray-600; }
+.table td { @apply text-sm text-gray-700; }
+.btn { @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium; }
+.btn-primary { @apply bg-blue-600 text-white hover:bg-blue-700; }
+.btn-warning { @apply bg-yellow-500 text-white hover:bg-yellow-600; }
+.btn-danger { @apply bg-red-500 text-white hover:bg-red-600; }
+.btn-success { @apply bg-green-600 text-white hover:bg-green-700; }
+.status-box { @apply mt-4 p-2 rounded; }
+.status-box.pending { @apply bg-yellow-100 text-yellow-800; }
+.status-box.paid { @apply bg-green-100 text-green-800; }
