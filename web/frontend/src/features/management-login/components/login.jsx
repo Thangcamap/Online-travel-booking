@@ -3,7 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { api } from "@/lib/api-client";
 import useAuthUserStore from "@/stores/useAuthUserStore";
 import { toast } from "sonner";
-import "../../assets/css/style.css";
+import Logo2 from "@/assets/images/Logo2.png";
+import "../../../assets/css/style.css";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ const Login = () => {
     <div className="flex flex-col items-center justify-center min-h-screen login-bg">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-[350px]">
         <div className="flex flex-col items-center mb-6">
-          <img src="assets/images/Logo2.png" alt="AI-Travel Logo" className="w-16 mb-3" />
+          <img src={Logo2} alt="AI-Travel Logo" className="w-16 mb-3" />
           <h2 className="text-2xl font-semibold">AI-Travel Login</h2>
         </div>
 

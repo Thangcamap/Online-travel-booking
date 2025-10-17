@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
-import "../../assets/css/style.css";
+import Logo2 from "@/assets/images/Logo2.png";
+import "../../../assets/css/style.css";
 const Register = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -44,7 +45,7 @@ const Register = () => {
     <div className="flex flex-col items-center justify-center min-h-screen login-bg">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-[400px]">
         <div className="flex flex-col items-center mb-6">
-          <img src="assets/images/Logo2.png" alt="AI-Travel Logo" className="w-16 mb-3" />
+          <img src={Logo2} alt="AI-Travel Logo" className="w-16 mb-3" />
           <h1 className="text-2xl font-semibold">AI-TRAVEL REGISTER</h1>
         </div>
 
