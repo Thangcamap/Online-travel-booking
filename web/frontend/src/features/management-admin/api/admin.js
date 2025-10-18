@@ -13,3 +13,20 @@ export const updateProviderStatus = async (id, status) => {
   const res = await axios.put(`${API_URL}/providers/${id}/approve`, { status });
   return res.data;
 };
+// ✅ Lấy danh sách tất cả user
+export const getAllUsers = async () => {
+  const res = await axios.get(`${API_URL}/users`);
+  return res.data.users;
+};
+
+// ✅ Cập nhật trạng thái user
+export const updateUserStatus = async (id, status) => {
+  const res = await axios.put(`${API_URL}/users/${id}/status`, { status });
+  return res.data;
+};
+// ✅ Lấy danh sách tất cả provider (kèm số tour, doanh thu, ảnh,...)
+export const getAllProviders = async () => {
+  const res = await axios.get(`${API_URL}/providers`);
+  return res.data.providers;
+};
+
