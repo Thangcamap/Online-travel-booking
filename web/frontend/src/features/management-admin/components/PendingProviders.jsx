@@ -1,11 +1,13 @@
 "use client";
-import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAllProviders, updateProviderStatus } from "../api/admin";
 import { Button } from "@/components/ui/button";
+import { CheckCircle2, XCircle, Eye, Clock } from "lucide-react";
+import { useState } from "react";
 
 export default function PendingProviders() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("pending"); // ✅ Trạng thái đang xem
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ["providers"],
@@ -17,82 +19,103 @@ export default function PendingProviders() {
     onSuccess: () => queryClient.invalidateQueries(["providers"]),
   });
 
-  if (isLoading) return <p className="text-center text-muted-foreground">Đang tải danh sách nhà cung cấp...</p>;
-  if (!providers?.length) return <p className="text-center text-muted-foreground">Không có nhà cung cấp nào.</p>;
+  if (isLoading)
+    return <p className="text-center text-muted-foreground">Đang tải danh sách...</p>;
+  if (!providers?.length)
+    return <p className="text-center text-muted-foreground">Không có dữ liệu nhà cung cấp.</p>;
+
+  const pending = providers.filter((p) => p.approval_status === "pending");
+  const approved = providers.filter((p) => p.approval_status === "approved");
+  const rejected = providers.filter((p) => p.approval_status === "rejected");
+
+  const tabs = [
+    { key: "pending", label: "Chờ duyệt", color: "bg-red-50 border-red-200 text-red-700", icon: <Clock className="w-4 h-4" /> },
+    { key: "approved", label: "Đã duyệt", color: "bg-green-50 border-green-200 text-green-700", icon: <CheckCircle2 className="w-4 h-4" /> },
+    { key: "rejected", label: "Từ chối", color: "bg-red-50 border-red-200 text-red-700", icon: <XCircle className="w-4 h-4" /> },
+  ];
+
+  const displayedProviders =
+    activeTab === "pending" ? pending :
+    activeTab === "approved" ? approved : rejected;
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto border border-border rounded-lg">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border bg-secondary/50">
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Logo</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Tên công ty</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Email</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">SĐT</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Số tour</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Doanh thu</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Trạng thái</th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {providers.map((p) => (
-              <tr key={p.provider_id} className="border-b border-border hover:bg-secondary/30 transition-colors">
-                <td className="px-6 py-4">
-                  <img
-                    src={p.logo_url || "/no-image.png"}
-                    alt="logo"
-                    className="w-12 h-12 object-cover rounded-md border border-border"
-                  />
-                </td>
-                <td className="px-6 py-4 font-medium text-foreground">{p.company_name}</td>
-                <td className="px-6 py-4 text-muted-foreground">{p.email}</td>
-                <td className="px-6 py-4 text-muted-foreground">{p.phone_number}</td>
-                <td className="px-6 py-4">{p.total_tours || 0}</td>
-                <td className="px-6 py-4">
-                  {p.total_revenue ? p.total_revenue.toLocaleString("vi-VN") + "₫" : "0₫"}
-                </td>
-                <td className="px-6 py-4 capitalize">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      p.approval_status === "approved"
-                        ? "bg-green-100 text-green-700"
-                        : p.approval_status === "rejected"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {p.approval_status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 flex gap-2">
-                  <Button
-                    onClick={() => mutation.mutate({ id: p.provider_id, status: "approved" })}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    size="sm"
-                  >
-                    Duyệt
-                  </Button>
-                  <Button
-                    onClick={() => mutation.mutate({ id: p.provider_id, status: "rejected" })}
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                    size="sm"
-                  >
-                    Từ chối
-                  </Button>
-                  <Button
-                    onClick={() => mutation.mutate({ id: p.provider_id, status: "pending" })}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                    size="sm"
-                  >
-                    Chờ duyệt
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="space-y-6">
+      {/* Thống kê 3 ô trạng thái */}
+      <div className="grid grid-cols-3 gap-4">
+        {tabs.map((tab) => (
+          <div
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`cursor-pointer border rounded-lg p-4 text-center transition hover:shadow-md ${
+              activeTab === tab.key ? "ring-2 ring-orange-400" : ""
+            } ${tab.color}`}
+          >
+            <div className="flex items-center justify-center gap-2 text-sm font-medium">
+              {tab.icon} {tab.label}
+            </div>
+            <p className="text-2xl font-bold mt-2">
+              {tab.key === "pending"
+                ? pending.length
+                : tab.key === "approved"
+                ? approved.length
+                : rejected.length}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Danh sách provider */}
+      <div className="space-y-3">
+        {displayedProviders.length > 0 ? (
+          displayedProviders.map((p) => (
+            <div
+              key={p.provider_id}
+              className="bg-white border rounded-lg p-4 hover:shadow transition"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-foreground">{p.company_name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{p.email}</p>
+                  <p className="text-sm text-muted-foreground">{p.phone_number}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Gửi: {new Date(p.created_at).toLocaleDateString("vi-VN")}
+                  </p>
+                </div>
+
+                {activeTab === "pending" && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() =>
+                        mutation.mutate({ id: p.provider_id, status: "approved" })
+                      }
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                      Duyệt
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() =>
+                        mutation.mutate({ id: p.provider_id, status: "rejected" })
+                      }
+                    >
+                      <XCircle className="w-4 h-4 mr-1" />
+                      Từ chối
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-12 bg-gray-50 rounded-lg border">
+            <p className="text-muted-foreground">
+              Không có nhà cung cấp nào trong mục này
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
