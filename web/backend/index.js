@@ -1,6 +1,8 @@
+require("dotenv").config({ path: __dirname + "/.env.development" });
+console.log("🌍 GEOAPIFY_API_KEY =", process.env.GEOAPIFY_API_KEY);
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
+const path = require("path");;
 const { pool } = require("./config/mysql");
 
 const app = express();
@@ -18,6 +20,12 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ✅ Import routes
+const geocodeRoutes = require("./src/routes/geocode");
+app.use("/api/geocode", geocodeRoutes);
+
+const addressRoutes = require("./src/routes/addressRoutes");
+app.use("/api/addresses", addressRoutes);
+
 const adminRoutes = require("./src/routes/admins");
 app.use("/api/admins", adminRoutes);
 

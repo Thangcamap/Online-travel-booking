@@ -4,6 +4,7 @@ const { pool } = require("../../config/mysql");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { v4: uuidv4 } = require("uuid"); // ✅ Thêm uuid
 
 // Tạo thư mục lưu ảnh nếu chưa có
 const uploadDir = path.join(__dirname, "../uploads");
@@ -27,7 +28,7 @@ router.post("/", async (req, res) => {
   try {
     const { user_id, company_name, description, email, phone_number, address_id } = req.body;
 
-       // ✅ Kiểm tra user đã có provider chưa
+    // ✅ Kiểm tra user đã có provider chưa
     const [existing] = await pool.query(
       "SELECT provider_id FROM tour_providers WHERE user_id = ?",
       [user_id]
@@ -40,7 +41,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const provider_id = "prov_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+    const provider_id = `prov_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
     await pool.query(
       `INSERT INTO tour_providers 
@@ -87,7 +88,7 @@ router.post(
           `INSERT INTO images (image_id, entity_type, entity_id, image_url, description)
            VALUES (?, 'provider', ?, ?, ?)`,
           [
-            "img_" + Date.now(),
+            `img_${uuidv4()}`, // ✅ Tạo id ảnh bằng UUID
             providerId,
             avatarUrl,
             "Ảnh logo provider",
@@ -101,17 +102,16 @@ router.post(
 
         // (nếu có cột cover_url thì cập nhật)
         await pool.query(
-  `UPDATE tour_providers SET logo_url = ? WHERE provider_id = ?`,
-  [coverUrl, providerId]
-);
-
+          `UPDATE tour_providers SET cover_url = ? WHERE provider_id = ?`,
+          [coverUrl, providerId]
+        );
 
         // Ghi thêm vào bảng images
         await pool.query(
           `INSERT INTO images (image_id, entity_type, entity_id, image_url, description)
            VALUES (?, 'provider', ?, ?, ?)`,
           [
-            "img_" + (Date.now() + 1),
+            `img_${uuidv4()}`, // ✅ Tạo id ảnh bằng UUID
             providerId,
             coverUrl,
             "Ảnh cover provider",
