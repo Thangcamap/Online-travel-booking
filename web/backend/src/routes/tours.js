@@ -76,8 +76,6 @@ if (!req.file) {
   console.log("✅ Loại file:", req.file.mimetype);
 }
 
-  
-
   try {
     const { tour_id } = req.params;
     console.log("🟢 Upload ảnh cho tour:", tour_id);
@@ -110,7 +108,6 @@ if (!req.file) {
   }
 });
 
-// --- 🟢 Tạo tour ---
 // --- 🟢 Tạo tour ---
 router.post("/", checkProviderApproved, async (req, res) => {
   try {
@@ -263,5 +260,49 @@ router.delete("/:tour_id", checkProviderApproved, async (req, res) => {
       .json({ success: false, message: "Lỗi server khi xóa tour." });
   }
 });
+// 📥 Tạo mới lịch trình (khi tour mới tạo)
+router.post("/:tour_id/itinerary", async (req, res) => {
+  const { tour_id } = req.params;
+  const { itinerary } = req.body;
+
+  try {
+    for (const item of itinerary) {
+      await pool.query(
+        "INSERT INTO tour_itineraries (tour_id, day_number, title, description) VALUES (?, ?, ?, ?)",
+        [tour_id, item.day_number, item.title || "", item.description || ""]
+      );
+    }
+    res.json({ success: true, message: "Lưu lịch trình thành công!" });
+  } catch (err) {
+    console.error("❌ Lỗi khi lưu lịch trình:", err);
+    res.status(500).json({ success: false, message: "Lỗi khi lưu lịch trình" });
+  }
+});
+
+// 📘 Cập nhật lịch trình (PUT)
+router.put("/:tour_id/itinerary", async (req, res) => {
+  const { tour_id } = req.params;
+  const { itinerary } = req.body;
+
+  try {
+    // Xóa lịch trình cũ trước
+    await pool.query("DELETE FROM tour_itineraries WHERE tour_id = ?", [tour_id]);
+
+    // Thêm lại toàn bộ lịch trình mới
+    for (const item of itinerary) {
+      await pool.query(
+        "INSERT INTO tour_itineraries (tour_id, day_number, title, description) VALUES (?, ?, ?, ?)",
+        [tour_id, item.day_number, item.title || "", item.description || ""]
+      );
+    }
+
+    res.json({ success: true, message: "Cập nhật lịch trình thành công!" });
+  } catch (err) {
+    console.error("❌ Lỗi khi cập nhật lịch trình:", err);
+    res.status(500).json({ success: false, message: "Lỗi khi cập nhật lịch trình" });
+  }
+});
+
+
 
 module.exports = router;

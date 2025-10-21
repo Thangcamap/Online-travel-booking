@@ -21,20 +21,13 @@ export const deleteTour = (tourId, providerId) => {
   return axios.delete(`/tours/${tourId}`, { data: { provider_id: providerId } });
 };
 
-// 🟢 Upload ảnh cho tour
 // 🟢 Upload ảnh tour
 export const uploadTourImage = async (tourId, file, providerId) => {
   const formData = new FormData();
   formData.append("image", file);
   formData.append("provider_id", providerId);
-
-  // ❌ bỏ "Content-Type"
-  // ✅ thêm "/api" vào đầu đường dẫn
   return await axios.post(`/tours/${tourId}/upload-image`, formData);
 };
-
-
-
 
 // 🟢 Lấy danh sách ảnh của tour
 export const getTourImages = (tourId) => {
@@ -47,3 +40,10 @@ export const deleteTourImage = (imageId) => {
   if (!imageId) throw new Error("Thiếu imageId khi gọi deleteTourImage");
   return axios.delete(`/images/${imageId}`);
 };
+// 🟢 Lấy lịch trình tour
+export const getTourItinerary = (tourId) => axios.get(`/tours/${tourId}/itinerary`);
+
+// 🟢 Cập nhật lịch trình tour
+export const updateTourItinerary = (tourId, itinerary) =>
+  axios.put(`/tours/${tourId}/itinerary`, { itinerary });
+

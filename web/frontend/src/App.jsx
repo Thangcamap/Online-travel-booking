@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import CreateProvided from "./features/management-provied/components/create-provied.jsx";
 import AdminDashboard from "./features/management-admin/components/AdminDashboard.jsx";
+import ProviderDashboard from "@/features/management-provied/components/ProviderDashboard";
 import TourManager from "./features/management-provied/components/TourManager.jsx";
 import Login from "./features/management-login/components/login.jsx";
 import Register from "./features/management-login/components/register.jsx";
@@ -25,8 +26,8 @@ function App() {
               {/* Test giao diện đăng ký Provider */}
               <Route path="/" element={<CreateProvided />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/provider-dashboard" element={<ProviderDashboard />} />
               {/* <Route path="/provider/tours" element={<TourManager />} /> */}
-              <Route path="/provider/tours" element={<TourManager providerId="prov_test001" />} />
             </Routes>
           </div>
         </Router>

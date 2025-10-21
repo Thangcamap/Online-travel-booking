@@ -7,7 +7,7 @@ export async function searchLocations(query) {
 
   const res = await axios.get(`${API_BASE}/api/geocode`, {
     params: { address: query },
-  });
+  }); 
 
   // ✅ Backend giờ trả về mảng `results`
   const results = res.data.results;
