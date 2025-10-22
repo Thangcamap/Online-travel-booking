@@ -30,15 +30,9 @@ function App() {
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/provider-dashboard" element={<ProviderDashboard />} />
               {/* <Route path="/provider/tours" element={<TourManager />} /> */}
-<<<<<<< Updated upstream
-=======
               <Route path="/provider/tours" element={<TourManager providerId="prov_test001" />} />
               {/* Trang chủ */}
               <Route path="/home" element={<Home />} />
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             </Routes>
           </div>
         </Router>
