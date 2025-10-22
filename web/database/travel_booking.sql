@@ -56,7 +56,7 @@ CREATE TABLE admins (
 
 -- Bảng tour
 CREATE TABLE tours (
-  tour_id VARCHAR(16) PRIMARY KEY,
+  tour_id VARCHAR(32) PRIMARY KEY,
   provider_id VARCHAR(16) NOT NULL,
   name VARCHAR(100) NOT NULL,
   description TEXT,
@@ -133,7 +133,7 @@ CREATE TABLE ai_recommendations (
 );
 CREATE TABLE tour_itineraries (
   itinerary_id INT AUTO_INCREMENT PRIMARY KEY,
-  tour_id VARCHAR(16) NOT NULL,
+  tour_id VARCHAR(32) NOT NULL,
   day_number INT NOT NULL,                   -- Ngày thứ mấy của tour
   title VARCHAR(255),                        -- Tên tiêu đề (ví dụ: "Tham quan Hà Nội")
   description TEXT,                          -- Nội dung chi tiết (ăn, ở, đi lại...)

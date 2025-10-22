@@ -79,13 +79,10 @@ export default function AddTourForm({ providerId, onAdded }) {
       }
 
       // 🟢 Gửi lịch trình (theo đúng API backend của bạn)
-      if (itinerary.length > 0) {
-        await fetch(`/api/tours/${newTour.tour_id}/itinerary`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itinerary }),
-        });
-      }
+if (itinerary.length > 0) {
+await axios.post(`/tours/${newTour.tour_id}/itinerary`, { itinerary });
+}
+
 
       alert("✅ Tạo tour, ảnh và lịch trình thành công!");
       onAdded?.();

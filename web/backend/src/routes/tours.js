@@ -190,7 +190,14 @@ router.get("/provider/:provider_id", checkProviderApproved, async (req, res) => 
         [tour.tour_id]
       );
       tour.images = imgs;
+            // 🗓 Lấy lịch trình
+      const [itinerary] = await pool.query(
+        "SELECT day_number AS day, description AS plan FROM tour_itineraries WHERE tour_id=? ORDER BY day_number ASC",
+        [tour.tour_id]
+      );
+      tour.itinerary = itinerary; // ✅ Gắn thêm vào đối tượng tour
     }
+    
 
     res.json({ success: true, tours });
   } catch (err) {
@@ -278,6 +285,32 @@ router.post("/:tour_id/itinerary", async (req, res) => {
     res.status(500).json({ success: false, message: "Lỗi khi lưu lịch trình" });
   }
 });
+
+// --- 📖 Lấy lịch trình theo tour_id ---
+router.get("/:tour_id/itinerary", async (req, res) => {
+  const { tour_id } = req.params;
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT day_number, title, description FROM tour_itineraries WHERE tour_id = ? ORDER BY day_number ASC",
+      [tour_id]
+    );
+
+    if (rows.length === 0) {
+      return res.json({
+        success: true,
+        itinerary: [],
+        message: "Tour chưa có lịch trình.",
+      });
+    }
+
+    res.json({ success: true, itinerary: rows });
+  } catch (err) {
+    console.error("❌ Lỗi khi lấy lịch trình:", err);
+    res.status(500).json({ success: false, message: "Lỗi khi lấy lịch trình." });
+  }
+});
+
 
 // 📘 Cập nhật lịch trình (PUT)
 router.put("/:tour_id/itinerary", async (req, res) => {

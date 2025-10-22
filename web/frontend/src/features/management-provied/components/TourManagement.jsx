@@ -64,17 +64,24 @@ export default function TourManagement({ providerId, tours = [], refresh }) {
   };
 
   // 🟢 Mở modal chỉnh sửa tour
-  const openEditDialog = (tour) => {
-    setEditingTour({ ...tour });
-    setNewImages([]);
-    // nạp lịch trình nếu có
+const openEditDialog = (tour) => {
+  setEditingTour({ ...tour });
+  setNewImages([]);
+
+  // 🧠 Xử lý linh hoạt cả 2 trường hợp: JSON string hoặc mảng
+  let parsed = [];
+  if (Array.isArray(tour.itinerary)) {
+    parsed = tour.itinerary;
+  } else if (typeof tour.itinerary === "string" && tour.itinerary.trim() !== "") {
     try {
-      const parsed = tour.itinerary ? JSON.parse(tour.itinerary) : [];
-      setItinerary(parsed);
+      parsed = JSON.parse(tour.itinerary);
     } catch {
-      setItinerary([]);
+      parsed = [];
     }
-  };
+  }
+  setItinerary(parsed);
+};
+
 
   // 🟢 Thay đổi dữ liệu trong form
   const handleChange = (field, value) => {
@@ -242,7 +249,7 @@ export default function TourManagement({ providerId, tours = [], refresh }) {
 
       {/* 🟢 Modal xem chi tiết */}
       <Dialog open={!!selectedTour} onOpenChange={() => setSelectedTour(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           {selectedTour && (
             <>
               <DialogHeader>
@@ -259,20 +266,19 @@ export default function TourManagement({ providerId, tours = [], refresh }) {
                 </p>
 
                 {/* 🗓️ Hiển thị lịch trình */}
-                {selectedTour.itinerary ? (
-                  <div className="bg-orange-50 p-3 rounded-md">
-                    <p className="font-semibold text-orange-700 mb-2">
-                      Lịch trình chi tiết
-                    </p>
-                    {JSON.parse(selectedTour.itinerary).map((day, i) => (
-                      <p key={i}>
-                        <strong>Ngày {day.day}:</strong> {day.plan}
-                      </p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-400 italic">Chưa có lịch trình</p>
-                )}
+{selectedTour.itinerary && selectedTour.itinerary.length > 0 ? (
+  <div className="bg-orange-50 p-3 rounded-md">
+    <p className="font-semibold text-orange-700 mb-2">Lịch trình chi tiết</p>
+    {selectedTour.itinerary.map((day, i) => (
+      <p key={i}>
+        <strong>Ngày {day.day}:</strong> {day.plan}
+      </p>
+    ))}
+  </div>
+) : (
+  <p className="text-gray-400 italic">Chưa có lịch trình</p>
+)}
+
 
                 <div className="grid grid-cols-3 gap-2 mt-4">
                   {getImageUrls(selectedTour.tour_id).length > 0 ? (
@@ -296,7 +302,7 @@ export default function TourManagement({ providerId, tours = [], refresh }) {
 
       {/* 🟢 Modal chỉnh sửa tour (có lịch trình) */}
       <Dialog open={!!editingTour} onOpenChange={() => setEditingTour(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           {editingTour && (
             <>
               <DialogHeader>

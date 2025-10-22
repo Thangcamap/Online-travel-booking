@@ -29,8 +29,6 @@ function App() {
               <Route path="/" element={<CreateProvided />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/provider-dashboard" element={<ProviderDashboard />} />
-              {/* <Route path="/provider/tours" element={<TourManager />} /> */}
-              <Route path="/provider/tours" element={<TourManager providerId="prov_test001" />} />
               {/* Trang chủ */}
               <Route path="/home" element={<Home />} />
             </Routes>

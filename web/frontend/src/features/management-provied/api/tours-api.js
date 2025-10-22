@@ -40,6 +40,13 @@ export const deleteTourImage = (imageId) => {
   if (!imageId) throw new Error("Thiếu imageId khi gọi deleteTourImage");
   return axios.delete(`/images/${imageId}`);
 };
+
+// 🟢 Tạo mới lịch trình tour
+export const createTourItinerary = (tourId, itinerary) => {
+  if (!tourId) throw new Error("Thiếu tourId khi gọi createTourItinerary");
+  return axios.post(`/tours/${tourId}/itinerary`, { itinerary });
+};
+
 // 🟢 Lấy lịch trình tour
 export const getTourItinerary = (tourId) => axios.get(`/tours/${tourId}/itinerary`);
 

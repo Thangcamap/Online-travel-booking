@@ -29,7 +29,7 @@ const Login = () => {
   const handleLogin = async (autoU, autoP) => {
     try {
       setLoading(true);
-      const res = await api.post("/api/login",{
+      const res = await api.post("/login",{
         username: autoU || username,
         password: autoP || password,
       });
