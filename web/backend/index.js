@@ -41,6 +41,10 @@ app.use("/api/login", loginRoute);
 const registerRoute = require("./src/routes/register");
 app.use("/api/register", registerRoute);
 
+const homeRoutes = require("./src/routes/home");
+app.use("/api/home", homeRoutes);
+
+
 // ✅ Route test
 app.get("/", async (req, res) => {
   const t = await pool.query("SELECT 1 + 1 AS solution");

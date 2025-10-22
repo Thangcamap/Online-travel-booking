@@ -29,13 +29,13 @@ const Login = () => {
   const handleLogin = async (autoU, autoP) => {
     try {
       setLoading(true);
-      const res = await api.post("/login", {
+      const res = await api.post("/api/login",{
         username: autoU || username,
         password: autoP || password,
       });
       toast.success(res.data.message || "Login successful!");
       setAuthUser(res.data.user);
-      navigate("/dashboard");
+      navigate("/home");
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed");
     } finally {
@@ -49,7 +49,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen login-bg">
+    <div className="login-bg flex flex-col items-center justify-center min-h-screen">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-[350px]">
         <div className="flex flex-col items-center mb-6">
           <img src={Logo2} alt="AI-Travel Logo" className="w-16 mb-3" />

@@ -14,7 +14,7 @@ router.post('/', async (req, res) => {
 
     // ✅ Cho phép đăng nhập bằng email, tên, hoặc số điện thoại
     const [rows] = await pool.query(
-      'SELECT * FROM users WHERE email = ? OR name = ? OR phone_number = ? LIMIT 1',
+      'SELECT * FROM users WHERE email = ? OR name = ? OR phone_number = ?',
       [username, username, username]
     );
 
