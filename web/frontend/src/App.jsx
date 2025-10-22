@@ -35,6 +35,9 @@ function App() {
               <Route path="/provider/tours" element={<TourManager providerId="prov_test001" />} />
               {/* Trang chủ */}
               <Route path="/home" element={<Home />} />
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             </Routes>
           </div>
