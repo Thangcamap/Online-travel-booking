@@ -35,6 +35,7 @@ const Login = () => {
       });
       toast.success(res.data.message || "Login successful!");
       setAuthUser(res.data.user);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
       navigate("/home");
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed");

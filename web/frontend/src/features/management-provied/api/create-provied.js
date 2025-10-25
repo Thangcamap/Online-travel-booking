@@ -16,13 +16,13 @@ const API_URL = `${BASE_URL}/api/providers`;
 // };
 export const createProvider = async (data) => {
   try {
-    // ✅ thêm user_id test
-    const requestData = {
-      ...data,
-      user_id: "u_test001", // <-- id bạn đã chèn tay vào DB
-    };
+    // // ✅ thêm user_id test
+    // const requestData = {
+    //   ...data,
+    //   user_id: "u_test001", // <-- id bạn đã chèn tay vào DB
+    // };
 
-    const res = await axios.post(API_URL, requestData);
+    const res = await axios.post(API_URL, data);
     return res;
   } catch (error) {
     console.error("❌ Lỗi khi tạo provider:", error);
@@ -48,4 +48,9 @@ export const uploadProviderImage = async ({ providerId, images }) => {
     console.error("❌ Lỗi khi upload ảnh:", error);
     throw error;
   }
+};
+// 📌 Kiểm tra provider theo userId
+export const getProviderByUser = async (userId) => {
+  const res = await axios.get(`${API_URL}/user/${userId}`);
+  return res.data;
 };

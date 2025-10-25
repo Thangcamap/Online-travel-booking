@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import StatCard from "../components/StatCard";
 import TourManagement from "../components/TourManagement";
 import AddTourForm from "../components/AddTourForm";
-import { getTours } from "../api/tours-api";
+import { getTours, getProviderByUser } from "../api/tours-api";
 
 export default function ProviderDashboard() {
-  const providerId = "prov_test001";
+  const [provider, setProvider] = useState(null);
   const [tours, setTours] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalTours: 0,
     activeTours: 0,
@@ -19,7 +20,8 @@ export default function ProviderDashboard() {
     revenue: "0M",
   });
 
-  const fetchTours = async () => {
+  // 🟢 Hàm tải danh sách tour
+  const fetchTours = async (providerId) => {
     try {
       const res = await getTours(providerId);
       if (res.data.success) {
@@ -33,17 +35,87 @@ export default function ProviderDashboard() {
         });
       }
     } catch (err) {
-      console.error("Lỗi tải tour:", err);
+      console.error("❌ Lỗi tải tour:", err);
     }
   };
 
+  // 🟢 Khi load trang → lấy provider theo user đăng nhập
   useEffect(() => {
-    fetchTours();
+    const init = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user")); // hoặc lấy từ context
+        if (!user?.user_id) {
+          setLoading(false);
+          return;
+        }
+
+        const providerRes = await getProviderByUser(user.user_id);
+
+        // ✅ Nếu user chưa đăng ký làm provider
+        if (!providerRes.exists) {
+          alert("Bạn chưa đăng ký làm nhà cung cấp tour (provider).");
+          setLoading(false);
+          return;
+        }
+
+        // ✅ Nếu provider đang chờ phê duyệt
+        if (providerRes.provider.approval_status !== "approved") {
+          alert(
+            "Tài khoản provider của bạn đang chờ admin phê duyệt \nBạn chưa thể sử dụng chức năng quản lý tour."
+          );
+          setProvider(providerRes.provider);
+          setLoading(false);
+          return;
+        }
+
+        // ✅ Nếu provider được duyệt
+        setProvider(providerRes.provider);
+        await fetchTours(providerRes.provider.provider_id);
+        setLoading(false);
+      } catch (error) {
+        console.error("❌ Lỗi khi tải provider:", error);
+        setLoading(false);
+      }
+    };
+
+    init();
   }, []);
+
+  // 🕐 Hiển thị trạng thái đang tải
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-orange-600 font-medium text-lg">
+          Đang tải dữ liệu...
+        </p>
+      </div>
+    );
+  }
+
+  // 🛑 Nếu chưa có provider hoặc chưa được duyệt
+  if (!provider || provider.approval_status !== "approved") {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen text-center">
+        <div className="bg-orange-100 border border-orange-300 p-6 rounded-xl shadow-sm">
+          <h2 className="text-2xl font-semibold text-orange-700 mb-2">
+            🚫 Không thể truy cập trang quản lý tour
+          </h2>
+          <p className="text-orange-600">
+            {provider
+              ? "Tài khoản provider của bạn đang chờ phê duyệt từ admin."
+              : "Bạn chưa đăng ký làm nhà cung cấp (provider)."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Nếu provider đã được duyệt → hiển thị dashboard
+  const providerId = provider.provider_id;
 
   return (
     <div className="min-h-screen bg-orange-50">
-      {/* Header giống admin */}
+      {/* Header */}
       <div className="bg-gradient-to-r from-orange-100 to-orange-200 border-b border-orange-300 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col">
           <div className="flex items-center gap-3 mb-2">
@@ -60,7 +132,7 @@ export default function ProviderDashboard() {
         </div>
       </div>
 
-      {/* Nội dung chính */}
+      {/* Main */}
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -90,7 +162,7 @@ export default function ProviderDashboard() {
           />
         </div>
 
-        {/* Tabs điều hướng (thay cho page state) */}
+        {/* Tabs */}
         <div className="bg-white rounded-2xl border border-orange-100 shadow-md overflow-hidden">
           <Tabs defaultValue="list" className="w-full">
             <TabsList className="w-full justify-start bg-orange-50 border-b border-orange-200 p-0 rounded-t-2xl">
@@ -110,7 +182,6 @@ export default function ProviderDashboard() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Tab nội dung */}
             <div className="p-6 bg-gradient-to-b from-orange-50 to-white rounded-b-2xl">
               <TabsContent value="list">
                 <h2 className="text-2xl font-semibold text-orange-600 mb-4">
@@ -119,7 +190,7 @@ export default function ProviderDashboard() {
                 <TourManagement
                   providerId={providerId}
                   tours={tours}
-                  refresh={fetchTours}
+                  refresh={() => fetchTours(providerId)}
                 />
               </TabsContent>
 
@@ -130,7 +201,7 @@ export default function ProviderDashboard() {
                 <Card className="p-6">
                   <AddTourForm
                     providerId={providerId}
-                    onAdded={() => fetchTours()}
+                    onAdded={() => fetchTours(providerId)}
                   />
                 </Card>
               </TabsContent>

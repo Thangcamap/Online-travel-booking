@@ -43,12 +43,19 @@ router.post("/", async (req, res) => {
 
     const provider_id = `prov_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
+    // await pool.query(
+    //   `INSERT INTO tour_providers 
+    //   (provider_id, user_id, company_name, description, email, phone_number, address_id)
+    //   VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    //   [provider_id, user_id, company_name, description, email, phone_number, address_id || null]
+    // );
     await pool.query(
-      `INSERT INTO tour_providers 
-      (provider_id, user_id, company_name, description, email, phone_number, address_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [provider_id, user_id, company_name, description, email, phone_number, address_id || null]
-    );
+  `INSERT INTO tour_providers 
+  (provider_id, user_id, company_name, description, email, phone_number, address_id, approval_status)
+  VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+  [provider_id, user_id, company_name, description, email, phone_number, address_id || null]
+);
+
 
     res.json({
       success: true,
@@ -143,5 +150,30 @@ router.get("/", async (req, res) => {
     res.status(500).json({ success: false, error: "Server error fetching providers." });
   }
 });
+// 📌 Lấy provider theo user_id
+router.get("/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const [rows] = await pool.query(
+      "SELECT provider_id, approval_status, status, company_name FROM tour_providers WHERE user_id = ?",
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ exists: false }); // user chưa là provider
+    }
+
+    const provider = rows[0];
+    res.json({
+      exists: true,
+      provider,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching provider by user:", error);
+    res.status(500).json({ error: "Server error fetching provider status" });
+  }
+});
+
+
 
 module.exports = router;
