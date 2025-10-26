@@ -14,7 +14,7 @@ async function initDatabase() {
   const connection = await mysql.createConnection({
     host: "localhost",
     user: "root",
-    password: "thang123", // 👉 đổi nếu khác
+    password: "@Quang12345", // 👉 đổi nếu khác
     port: 3306,
   });
 
@@ -28,7 +28,7 @@ async function initDatabase() {
   const pool = await mysql.createPool({
     host: "localhost",
     user: "root",
-    password: "thang123",
+    password: "@Quang12345",
     port: 3306,
     database: "travel_booking",
     multipleStatements: true,
