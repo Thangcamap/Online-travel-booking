@@ -12,7 +12,7 @@ const Home = () => {
   // ✅ Nếu chưa login thì quay về trang Login
   useEffect(() => {
     if (!authUser) {
-      navigate("/home"); // Chuyển về trang home
+      navigate("/login"); 
     }
   }, [authUser, navigate]);
 
@@ -45,8 +45,7 @@ const Home = () => {
           <Link to="/tours">Tours</Link>
           {!authUser ? (
             <>
-              <Link to="/login">Login</Link>
-              <Link to="/register">Register</Link>
+              <Link to="/login">Logout</Link>
             </>
           ) : (
             <button className="logout-btn" onClick={handleLogout}>
