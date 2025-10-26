@@ -335,6 +335,26 @@ router.put("/:tour_id/itinerary", async (req, res) => {
     res.status(500).json({ success: false, message: "Lỗi khi cập nhật lịch trình" });
   }
 });
+// --- 🟢 Lấy thông tin provider theo user_id ---
+router.get("/provider/by-user/:user_id", async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    const [rows] = await pool.query(
+      "SELECT * FROM tour_providers WHERE user_id = ? LIMIT 1",
+      [user_id]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ success: true, exists: false });
+    }
+
+    res.json({ success: true, exists: true, provider: rows[0] });
+  } catch (error) {
+    console.error("❌ Error fetching provider by user:", error);
+    res.status(500).json({ success: false, message: "Lỗi server khi lấy provider." });
+  }
+});
 
 
 

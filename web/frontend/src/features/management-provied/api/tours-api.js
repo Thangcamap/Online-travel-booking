@@ -54,3 +54,9 @@ export const getTourItinerary = (tourId) => axios.get(`/tours/${tourId}/itinerar
 export const updateTourItinerary = (tourId, itinerary) =>
   axios.put(`/tours/${tourId}/itinerary`, { itinerary });
 
+
+export const getProviderByUser = async (userId) => {
+  const res = await axios.get(`/tours/provider/by-user/${userId}`);
+  return res.data;
+};
+
