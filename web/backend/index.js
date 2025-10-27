@@ -44,6 +44,10 @@ app.use("/api/register", registerRoute);
 const homeRoutes = require("./src/routes/home");
 app.use("/api/home", homeRoutes);
 
+const aiRoutes = require("./src/routes/ai");
+app.use("/api/ai", aiRoutes);
+
+
 
 // ✅ Route test
 app.get("/", async (req, res) => {

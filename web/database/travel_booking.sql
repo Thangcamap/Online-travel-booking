@@ -2,7 +2,7 @@
 CREATE TABLE users (
   user_id VARCHAR(16) PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
-  email VARCHAR(255) NOT NULL UNIQUE,
+  email VARCHAR(191) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   phone_number VARCHAR(20) NOT NULL UNIQUE,
   avatar_url VARCHAR(255),
@@ -31,7 +31,7 @@ CREATE TABLE tour_providers (
   user_id VARCHAR(16) NOT NULL,
   company_name VARCHAR(255) NOT NULL,
   description TEXT,
-  email VARCHAR(255),
+  email VARCHAR(191),
   phone_number VARCHAR(20),
   logo_url VARCHAR(255),
   cover_url VARCHAR(255),
@@ -131,6 +131,15 @@ CREATE TABLE ai_recommendations (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_ai_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
+CREATE TABLE ai_messages (
+  message_id VARCHAR(36) PRIMARY KEY,
+  user_id VARCHAR(16) NOT NULL,
+  role ENUM('user', 'assistant') NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
 CREATE TABLE tour_itineraries (
   itinerary_id INT AUTO_INCREMENT PRIMARY KEY,
   tour_id VARCHAR(32) NOT NULL,

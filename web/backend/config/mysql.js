@@ -13,6 +13,7 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  charset: "utf8mb4",  // 👈 dòng quan trọng để Node gửi UTF-8
 });
 
 export { pool };
