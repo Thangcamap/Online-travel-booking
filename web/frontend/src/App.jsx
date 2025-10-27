@@ -8,6 +8,7 @@ import TourManager from "./features/management-provied/components/TourManager.js
 import Login from "./features/management-login/components/login.jsx";
 import Register from "./features/management-login/components/register.jsx";
 import Home from "./features/management-home/components/home.jsx";
+import AI from "./features/AI/components/AI";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
@@ -31,6 +32,7 @@ function App() {
               <Route path="/provider-dashboard" element={<ProviderDashboard />} />
               {/* Trang chủ */}
               <Route path="/home" element={<Home />} />
+              <Route path="/ai" element={<AI />} />
             </Routes>
           </div>
         </Router>
