@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import axios from "axios";
-import { deleteTour, updateTour } from "../api/tours-api";
+import { deleteTour, updateTour ,updateTourItinerary} from "../api/tours-api";
 
 export default function TourManagement({ providerId, tours = [], refresh }) {
   const [tourImages, setTourImages] = useState({});
@@ -101,33 +101,45 @@ const openEditDialog = (tour) => {
   };
 
   // 🟢 Lưu thay đổi tour (bao gồm lịch trình)
-  const handleSave = async () => {
-    try {
-      await updateTour(editingTour.tour_id, {
-        ...editingTour,
-        provider_id: providerId,
-        itinerary,
-      });
 
-      // Upload ảnh mới
-      for (const file of newImages) {
-        const formData = new FormData();
-        formData.append("image", file);
-        await axios.post(
-          `${baseURL}/api/tours/${editingTour.tour_id}/upload-image`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-      }
+const handleSave = async () => {
+  try {
+    // 1️⃣ Cập nhật thông tin tour
+    await updateTour(editingTour.tour_id, {
+      ...editingTour,
+      provider_id: providerId,
+    });
 
-      alert("✅ Cập nhật tour thành công!");
-      setEditingTour(null);
-      refresh();
-    } catch (err) {
-      console.error("Lỗi cập nhật tour:", err);
-      alert("❌ Lỗi khi lưu tour!");
+    // 2️⃣ Chuẩn hóa dữ liệu lịch trình
+    const normalizedItinerary = itinerary.map((item, i) => ({
+      day_number: item.day || item.day_number || i + 1,
+      title: item.title || "",
+      description: item.plan || item.description || "",
+    }));
+
+    // 3️⃣ Cập nhật lịch trình
+    await updateTourItinerary(editingTour.tour_id, normalizedItinerary);
+
+    // 4️⃣ Upload ảnh mới (nếu có)
+    for (const file of newImages) {
+      const formData = new FormData();
+      formData.append("image", file);
+      await axios.post(
+        `${baseURL}/api/tours/${editingTour.tour_id}/upload-image`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
     }
-  };
+
+    alert("✅ Cập nhật tour & lịch trình thành công!");
+    setEditingTour(null);
+    refresh();
+  } catch (err) {
+    console.error("❌ Lỗi khi lưu tour:", err);
+    alert("❌ Lỗi khi lưu tour hoặc lịch trình!");
+  }
+};
+
 
   // 🟢 Xóa ảnh cũ
   const handleRemoveOldImage = async (index) => {

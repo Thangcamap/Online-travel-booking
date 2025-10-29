@@ -249,6 +249,38 @@ router.put("/:tour_id", checkProviderApproved, async (req, res) => {
   }
 });
 
+// --- 🗑️ Xóa ảnh của tour ---
+router.delete("/:tour_id/images", async (req, res) => {
+  const { tour_id } = req.params;
+
+  try {
+    // Xóa ảnh khỏi database
+    const [result] = await pool.query(
+      "DELETE FROM images WHERE entity_type = 'tour' AND entity_id = ?",
+      [tour_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy ảnh để xóa cho tour này.",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Ảnh của tour đã được xóa thành công.",
+    });
+  } catch (err) {
+    console.error("❌ Lỗi khi xóa ảnh tour:", err);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server khi xóa ảnh tour.",
+    });
+  }
+});
+
+
 // --- 🗑️ Xóa tour ---
 router.delete("/:tour_id", checkProviderApproved, async (req, res) => {
   try {
