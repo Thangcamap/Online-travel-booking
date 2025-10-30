@@ -1,64 +1,97 @@
 "use client";
-import React from "react";
-import PendingProviders from "./PendingProviders";
-import ManageUsers from "./ManageUsers";
+import React, { useState } from "react";
 import DashboardStats from "./DashboardStats";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Users, Building2 } from "lucide-react";
+import ManageUsers from "./ManageUsers";
+import PendingProviders from "./PendingProviders";
+import { Users, Building2, LayoutDashboard, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // 🔸 Xóa token / session ở localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    // 🔸 Quay lại trang đăng nhập
+    navigate("/login");
+  };
+
+  const menu = [
+    { key: "dashboard", label: "Thống kê", icon: <LayoutDashboard className="w-5 h-5" /> },
+    { key: "users", label: "Người dùng", icon: <Users className="w-5 h-5" /> },
+    { key: "providers", label: "Nhà cung cấp", icon: <Building2 className="w-5 h-5" /> },
+  ];
+
   return (
-    <div className="min-h-screen bg-orange-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-orange-100 to-orange-200 border-b border-orange-300 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-11 h-11 rounded-xl bg-orange-500 flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-lg">AI</span>
-            </div>
-            <h1 className="text-3xl font-bold text-orange-700">AI-Travel Admin</h1>
+    <div className="flex min-h-screen bg-gradient-to-br from-orange-50 to-white text-gray-800">
+      {/* 🔹 Sidebar */}
+      <aside className="w-64 bg-white/95 border-r shadow-md flex flex-col justify-between">
+        <div>
+          {/* Header logo */}
+          <div className="px-6 py-5 border-b flex items-center gap-2">
+            <div className="bg-orange-500 text-white font-bold rounded-md px-2 py-1">AI</div>
+            <h1 className="font-bold text-lg text-orange-600">AI Travel Admin</h1>
           </div>
-          <p className="text-orange-600 text-sm">Quản lý nền tảng du lịch thông minh</p>
-        </div>
-      </div>
 
-      {/* Stats */}
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-        <DashboardStats />
-
-        {/* Tabs Section */}
-        <div className="bg-white rounded-2xl border border-orange-100 shadow-md overflow-hidden">
-          <Tabs defaultValue="users" className="w-full">
-            <TabsList className="w-full justify-start bg-orange-50 border-b border-orange-200 p-0 rounded-t-2xl">
-              <TabsTrigger
-                value="users"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-600 data-[state=active]:bg-orange-100 px-6 py-4 gap-2 text-gray-800 transition-all duration-200"
+          {/* Menu */}
+          <nav className="py-4 space-y-1">
+            {menu.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setActiveTab(item.key)}
+                className={`w-full flex items-center gap-3 px-6 py-3 text-left text-sm font-medium transition-all rounded-r-full ${
+                  activeTab === item.key
+                    ? "bg-orange-100 text-orange-700 border-l-4 border-orange-500"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
               >
-                <Users className="w-4 h-4" />
-                <span>Quản lý người dùng</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="providers"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-600 data-[state=active]:bg-orange-100 px-6 py-4 gap-2 text-gray-800 transition-all duration-200"
-              >
-                <Building2 className="w-4 h-4" />
-                <span>Nhà cung cấp chờ duyệt</span>
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Content */}
-            <div className="p-6 bg-gradient-to-b from-orange-50 to-white rounded-b-2xl">
-              <TabsContent value="users" className="mt-0">
-                <ManageUsers />
-              </TabsContent>
-
-              <TabsContent value="providers" className="mt-0">
-                <PendingProviders />
-              </TabsContent>
-            </div>
-          </Tabs>
+                <div
+                  className={`${
+                    activeTab === item.key ? "text-orange-600" : "text-gray-500"
+                  } transition`}
+                >
+                  {item.icon}
+                </div>
+                {item.label}
+              </button>
+            ))}
+          </nav>
         </div>
-      </div>
+
+        {/* 🔸 Nút đăng xuất */}
+        <div className="px-6 py-4 border-t border-orange-100">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-start gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+          >
+            <LogOut className="w-5 h-5" />
+            Đăng xuất
+          </button>
+          <p className="text-xs text-gray-400 text-center mt-2">© 2025 AI Travel</p>
+        </div>
+      </aside>
+
+      {/* 🔸 Nội dung chính */}
+      <main className="flex-1 px-10 py-8 overflow-y-auto">
+        <header className="mb-8 flex items-center gap-3 border-b pb-4">
+          <LayoutDashboard className="w-6 h-6 text-orange-600" />
+          <h2 className="text-2xl font-bold text-gray-800">
+            {activeTab === "dashboard"
+              ? "Tổng quan hệ thống"
+              : activeTab === "users"
+              ? "Quản lý người dùng"
+              : "Nhà cung cấp"}
+          </h2>
+        </header>
+
+        <section className="bg-white/90 backdrop-blur-sm border border-orange-100 rounded-2xl shadow-sm p-6 animate-fade-in">
+          {activeTab === "dashboard" && <DashboardStats />}
+          {activeTab === "users" && <ManageUsers />}
+          {activeTab === "providers" && <PendingProviders />}
+        </section>
+      </main>
     </div>
   );
 }

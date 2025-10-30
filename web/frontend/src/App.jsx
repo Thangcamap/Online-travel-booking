@@ -9,11 +9,11 @@ import Login from "./features/management-login/components/login.jsx";
 import Register from "./features/management-login/components/register.jsx";
 import Home from "./features/management-home/components/home.jsx";
 import AI from "./features/AI/components/AI";
+import ProtectedRoute from "@/components/ProtectedRoute";  // 🧱 thêm dòng này
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
 
-// Khởi tạo QueryClient
 const queryClient = new QueryClient();
 
 function App() {
@@ -23,16 +23,36 @@ function App() {
         <Router>
           <div className="App">
             <Routes>
-              {/* Đăng nhập & đăng ký */}
+              {/* Trang đăng nhập & đăng ký */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              {/* Test giao diện đăng ký Provider */}
+
+              {/* ✅ Trang admin - chỉ admin mới vào được */}
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute role="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+
+              {/* ✅ Trang home (bắt buộc đăng nhập, ai cũng được) */}
+              <Route
+                path="/home"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Trang public hoặc test */}
+               <Route path="/provider-dashboard" element={<ProviderDashboard />} />
               <Route path="/" element={<CreateProvided />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/provider-dashboard" element={<ProviderDashboard />} />
-              {/* Trang chủ */}
-              <Route path="/home" element={<Home />} />
               <Route path="/ai" element={<AI />} />
+
             </Routes>
           </div>
         </Router>

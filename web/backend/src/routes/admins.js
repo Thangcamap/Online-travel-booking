@@ -90,6 +90,29 @@ router.put("/users/:id/status", async (req, res) => {
     res.status(500).json({ success: false, error: "Server error updating user status." });
   }
 });
+// ✅ Lấy danh sách tất cả tour và tổng doanh thu hệ thống
+router.get("/tours", async (req, res) => {
+  try {
+    const [tours] = await pool.query(`
+      SELECT 
+        t.tour_id,
+        t.name,
+        t.price,
+        t.provider_id,
+        COUNT(b.booking_id) AS total_bookings,
+        COALESCE(SUM(p.amount), 0) AS total_revenue
+      FROM tours t
+      LEFT JOIN bookings b ON t.tour_id = b.tour_id
+      LEFT JOIN payments p ON b.booking_id = p.booking_id AND p.status = 'paid'
+      GROUP BY t.tour_id
+    `);
+
+    res.json({ success: true, tours });
+  } catch (error) {
+    console.error("❌ Error fetching tours:", error);
+    res.status(500).json({ success: false, error: "Server error fetching tours." });
+  }
+});
 
 
 module.exports = router;

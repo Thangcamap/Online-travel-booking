@@ -25,6 +25,11 @@ router.post("/", async (req, res) => {
 
     if (!match)
       return res.status(401).json({ message: "Mật khẩu không đúng." });
+    let adminInfo = null;
+    if (user.role === "admin") {
+      const [adminRows] = await pool.query("SELECT * FROM admins WHERE user_id = ?", [user.user_id]);
+      if (adminRows.length) adminInfo = adminRows[0];
+    }
 
     // ✅ Chỉ trả thông tin cần thiết, không gửi password
     const safeUser = {

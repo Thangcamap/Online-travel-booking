@@ -25,6 +25,7 @@ const Login = () => {
 
       // ✅ Lưu user vào store
       setAuthUser(res.data.user);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
 
       // ✅ Hiển thị thông báo thành công
       Swal.fire({
@@ -37,7 +38,16 @@ const Login = () => {
       });
 
       // ✅ Chuyển sang trang home sau 1.5s
-      setTimeout(() => navigate("/home"), 1500);
+      // ✅ Điều hướng theo vai trò người dùng
+setTimeout(() => {
+  const role = res.data.user.role;
+  if (role === "admin") {
+    navigate("/admin/dashboard"); // 👈 trang admin
+  } else {
+    navigate("/home");
+  }
+}, 1500);
+
     } catch (error) {
       console.error("❌ Lỗi đăng nhập:", error.response?.data);
       const msg =

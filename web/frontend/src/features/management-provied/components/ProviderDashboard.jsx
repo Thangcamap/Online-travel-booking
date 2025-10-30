@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { MapPin, TrendingUp, Users, Calendar, Plus, List } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import StatCard from "../components/StatCard";
 import TourManagement from "../components/TourManagement";
 import AddTourForm from "../components/AddTourForm";
@@ -20,7 +19,6 @@ export default function ProviderDashboard() {
     revenue: "0M",
   });
 
-  // 🟢 Hàm tải danh sách tour
   const fetchTours = async (providerId) => {
     try {
       const res = await getTours(providerId);
@@ -39,36 +37,31 @@ export default function ProviderDashboard() {
     }
   };
 
-  // 🟢 Khi load trang → lấy provider theo user đăng nhập
   useEffect(() => {
     const init = async () => {
       try {
-        const user = JSON.parse(localStorage.getItem("user")); // hoặc lấy từ context
+        const user = JSON.parse(localStorage.getItem("user"));
         if (!user?.user_id) {
           setLoading(false);
           return;
         }
 
         const providerRes = await getProviderByUser(user.user_id);
-
-        // ✅ Nếu user chưa đăng ký làm provider
         if (!providerRes.exists) {
           alert("Bạn chưa đăng ký làm nhà cung cấp tour (provider).");
           setLoading(false);
           return;
         }
 
-        // ✅ Nếu provider đang chờ phê duyệt
         if (providerRes.provider.approval_status !== "approved") {
           alert(
-            "Tài khoản provider của bạn đang chờ admin phê duyệt \nBạn chưa thể sử dụng chức năng quản lý tour."
+            "Tài khoản provider của bạn đang chờ admin phê duyệt.\nBạn chưa thể sử dụng chức năng quản lý tour."
           );
           setProvider(providerRes.provider);
           setLoading(false);
           return;
         }
 
-        // ✅ Nếu provider được duyệt
         setProvider(providerRes.provider);
         await fetchTours(providerRes.provider.provider_id);
         setLoading(false);
@@ -81,18 +74,14 @@ export default function ProviderDashboard() {
     init();
   }, []);
 
-  // 🕐 Hiển thị trạng thái đang tải
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-orange-600 font-medium text-lg">
-          Đang tải dữ liệu...
-        </p>
+      <div className="flex justify-center items-center h-screen text-orange-600 font-medium text-lg">
+        Đang tải dữ liệu...
       </div>
     );
   }
 
-  // 🛑 Nếu chưa có provider hoặc chưa được duyệt
   if (!provider || provider.approval_status !== "approved") {
     return (
       <div className="flex flex-col justify-center items-center h-screen text-center">
@@ -102,7 +91,7 @@ export default function ProviderDashboard() {
           </h2>
           <p className="text-orange-600">
             {provider
-              ? "Tài khoản provider của bạn đang chờ phê duyệt từ admin."
+              ? "Tài khoản provider của bạn đang chờ phê duyệt."
               : "Bạn chưa đăng ký làm nhà cung cấp (provider)."}
           </p>
         </div>
@@ -110,25 +99,22 @@ export default function ProviderDashboard() {
     );
   }
 
-  // ✅ Nếu provider đã được duyệt → hiển thị dashboard
   const providerId = provider.provider_id;
 
   return (
-    <div className="min-h-screen bg-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white text-gray-800">
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-100 to-orange-200 border-b border-orange-300 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-11 h-11 rounded-xl bg-orange-500 flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-lg">PV</span>
+      <div className="bg-white/90 border-b border-orange-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center shadow-md">
+              <span className="text-white font-bold text-base">AI</span>
             </div>
-            <h1 className="text-3xl font-bold text-orange-700">
-              AI-Travel Provider
+            <h1 className="text-2xl font-bold text-orange-600">
+              AI-Travel 
             </h1>
           </div>
-          <p className="text-orange-600 text-sm">
-            Quản lý tour du lịch của bạn
-          </p>
+          <p className="text-orange-500 text-sm">Quản lý tour du lịch của bạn</p>
         </div>
       </div>
 
@@ -137,25 +123,25 @@ export default function ProviderDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <StatCard
-            icon={<MapPin size={26} />}
+            icon={<MapPin size={24} />}
             label="Tổng Tour"
             value={stats.totalTours}
             color="blue"
           />
           <StatCard
-            icon={<TrendingUp size={26} />}
+            icon={<TrendingUp size={24} />}
             label="Tour Hoạt Động"
             value={stats.activeTours}
             color="green"
           />
           <StatCard
-            icon={<Users size={26} />}
+            icon={<Users size={24} />}
             label="Tổng Đặt Tour"
             value={stats.totalBookings}
             color="purple"
           />
           <StatCard
-            icon={<Calendar size={26} />}
+            icon={<Calendar size={24} />}
             label="Doanh Thu"
             value={stats.revenue}
             color="yellow"
@@ -163,9 +149,9 @@ export default function ProviderDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-2xl border border-orange-100 shadow-md overflow-hidden">
+        <div className="bg-white/90 border border-orange-100 rounded-2xl shadow-md overflow-hidden backdrop-blur-sm">
           <Tabs defaultValue="list" className="w-full">
-            <TabsList className="w-full justify-start bg-orange-50 border-b border-orange-200 p-0 rounded-t-2xl">
+            <TabsList className="w-full justify-start bg-orange-50 border-b border-orange-100 p-0 rounded-t-2xl">
               <TabsTrigger
                 value="list"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-600 data-[state=active]:bg-orange-100 px-6 py-4 gap-2 text-gray-800 transition-all duration-200"
@@ -198,7 +184,7 @@ export default function ProviderDashboard() {
                 <h2 className="text-2xl font-semibold text-green-600 mb-4">
                   Thêm Tour Mới
                 </h2>
-                <Card className="p-6">
+                <Card className="p-6 border border-orange-100 shadow-sm">
                   <AddTourForm
                     providerId={providerId}
                     onAdded={() => fetchTours(providerId)}

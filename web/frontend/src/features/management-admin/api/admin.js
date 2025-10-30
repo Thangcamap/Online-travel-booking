@@ -29,4 +29,9 @@ export const getAllProviders = async () => {
   const res = await axios.get(`${API_URL}/providers`);
   return res.data.providers;
 };
+// ✅ Lấy danh sách tất cả tour của hệ thống
+export const getAllTours = async () => {
+  const res = await axios.get(`${API_URL}/tours`);
+  return res.data.tours;
+};
 
