@@ -15,6 +15,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ✅ Static: phục vụ ảnh trong thư mục backend/uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

@@ -2,26 +2,23 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api-client";
 import { Link, useNavigate } from "react-router-dom";
 import useAuthUserStore from "@/stores/useAuthUserStore";
-import "@/assets/css/home.css";
 
 const Home = () => {
   const navigate = useNavigate();
   const { authUser, setAuthUser } = useAuthUserStore();
   const [tours, setTours] = useState([]);
-  const [showMenu, setShowMenu] = useState(false);
+  const [search, setSearch] = useState("");
 
-  // ✅ Nếu chưa login thì quay về trang Login
+  // Nếu chưa login → quay về login
   useEffect(() => {
-    if (!authUser) {
-      navigate("/login"); 
-    }
+    if (!authUser) navigate("/login");
   }, [authUser, navigate]);
 
-  // ✅ Lấy danh sách tour
+  // Lấy danh sách tour
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const res = await api.get("home/tours");
+        const res = await api.get("/home/tours");
         setTours(res.data || []);
       } catch (err) {
         console.error("Error fetching tours:", err);
@@ -30,78 +27,230 @@ const Home = () => {
     fetchTours();
   }, []);
 
-  // ✅ Đăng xuất
+  // Đăng xuất
   const handleLogout = () => {
     setAuthUser(null);
     navigate("/login");
   };
 
+  // Lọc tour theo từ khóa
+  const filteredTours = tours.filter((tour) =>
+    tour.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="home-container">
-      {/* Header */}
-      <header className="home-header">
-        <div className="home-logo">AI-TRAVEL</div>
-        <nav>
-          <Link to="/home">Home</Link>
-          <Link to="/tours">Tours</Link>
+    <div className="flex flex-col min-h-screen bg-gray-50 text-gray-800">
+      {/* HEADER */}
+      <header className="bg-white/90 backdrop-blur-sm shadow-md sticky top-0 z-50">
+        <div className="container mx-auto flex items-center justify-between px-6 py-3">
+          {/* LEFT: Logo + Brand */}
+          <div className="flex items-center gap-2">
+            <img
+              src="/src/assets/images/Logo2.png"
+              alt="AI-Travel Logo"
+              className="w-10 h-10 object-contain"
+            />
+            <Link
+              to="/home"
+              className="text-2xl font-extrabold text-orange-500 tracking-tight hover:text-orange-600 transition-colors"
+            >
+              AI-TRAVEL
+            </Link>
+          </div>
 
+          {/* CENTER: Navigation links */}
+          <nav className="hidden md:flex gap-6 text-gray-700 font-medium">
+            <Link to="/home" className="hover:text-orange-500 transition-colors">
+              Home
+            </Link>
+            <Link to="/tours" className="hover:text-orange-500 transition-colors">
+              Tours
+            </Link>
+            <Link to="/about" className="hover:text-orange-500 transition-colors">
+              About
+            </Link>
+            <Link to="/contact" className="hover:text-orange-500 transition-colors">
+              Contact
+            </Link>
+          </nav>
 
-                    {!authUser ? (
-            <>
-              <Link to="/login">Login</Link>
-              <Link to="/register">Register</Link>
-            </>
-          ) : (
-            <button className="logout-btn" onClick={handleLogout}>
-              Logout
-            </button>
-          )}
-
-        </nav>
+          {/* RIGHT: Auth buttons */}
+          <div className="flex items-center gap-3">
+            {!authUser ? (
+              <>
+                <Link
+                  to="/login"
+                  className="px-4 py-2 text-orange-500 font-semibold hover:text-white hover:bg-orange-500 rounded-lg border border-orange-500 transition"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition"
+                >
+                  Register
+                </Link>
+              </>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="hidden sm:block font-medium text-gray-700">
+                  👋 Xin chào,{" "}
+                  <span className="font-semibold text-orange-500">
+                    {authUser.name}
+                  </span>
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </header>
 
-      {/* Hero section */}
-      <section className="home-hero">
-        <div className="hero-text">
-          <h1>Welcome, {authUser?.name || "Traveler"}!</h1>
-          <p>Discover the best tours powered by AI-Travel.</p>
-          <Link to="/tours" className="hero-btn">
-            Explore Tours
-          </Link>
+      {/* HERO SECTION */}
+      <section
+        className="relative w-full h-[85vh] flex items-center justify-center text-center bg-cover bg-center"
+        style={{
+          backgroundImage: "url('/src/assets/images/hero.jpg')",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="relative z-10 text-white px-4">
+          <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">
+            Explore the World with AI-Travel
+          </h1>
+          <p className="text-lg mb-8 opacity-90">
+            Find your next adventure with AI-powered recommendations.
+          </p>
+
+          {/* Search bar */}
+          <div className="bg-white flex flex-col md:flex-row gap-3 p-4 rounded-xl shadow-lg max-w-3xl mx-auto">
+            <input
+              type="text"
+              placeholder="Search destinations..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
+            <button className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition">
+              Search
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* Tour list */}
-      <section className="home-tours">
-        <h2>Popular Tours</h2>
-        <div className="tour-grid">
-          {tours.length === 0 ? (
-            <p className="no-tour">No tours available yet.</p>
+      {/* POPULAR TOURS */}
+      <section className="py-16 bg-gray-100">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-3xl font-bold mb-8 text-gray-800">
+            Popular Tours
+          </h2>
+
+          {filteredTours.length === 0 ? (
+            <p className="text-gray-500">No tours available yet.</p>
           ) : (
-            tours.map((tour) => (
-              <div key={tour.tour_id} className="tour-card">
-                <img
-                  src={tour.image_url || "/default-tour.jpg"}
-                  alt={tour.name}
-                  className="tour-image"
-                />
-                <div className="tour-info">
-                  <h3>{tour.name}</h3>
-                  <p className="tour-desc">{tour.description?.slice(0, 100)}...</p>
-                  <p className="tour-price">{tour.price} VND</p>
-                  <Link to={`/tour/${tour.tour_id}`} className="tour-btn">
-                    View Details
-                  </Link>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {filteredTours.slice(0, 8).map((tour) => (
+                <div
+                  key={tour.tour_id}
+                  className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-transform hover:-translate-y-2"
+                >
+                  <img
+                    src={
+                      tour.image_url ||
+                      "/src/assets/images/default-tour.jpg"
+                    }
+                    alt={tour.name}
+                    className="h-52 w-full object-cover"
+                  />
+                  <div className="p-5 text-left">
+                    <h3 className="text-lg font-semibold mb-2">
+                      {tour.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+                      {tour.description || "No description available."}
+                    </p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-orange-500 font-semibold">
+                        {Number(tour.price).toLocaleString()}{" "}
+                        {tour.currency || "VND"}
+                      </span>
+                      <Link
+                        to={`/tour/${tour.tour_id}`}
+                        className="bg-orange-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-orange-600"
+                      >
+                        View
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="home-footer">
-        <p>© {new Date().getFullYear()} AI-Travel. All rights reserved.</p>
+      {/* WHY CHOOSE US */}
+      <section className="py-20 bg-white text-center">
+        <h2 className="text-3xl font-bold mb-10 text-gray-800">
+          Why Choose AI-Travel?
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto px-6">
+          <div className="p-6 rounded-xl shadow hover:shadow-lg transition">
+            <div className="text-orange-500 text-4xl mb-3">🤖</div>
+            <h3 className="text-xl font-semibold mb-2">
+              AI Recommendations
+            </h3>
+            <p className="text-gray-600">
+              Smart suggestions tailored to your travel preferences.
+            </p>
+          </div>
+          <div className="p-6 rounded-xl shadow hover:shadow-lg transition">
+            <div className="text-orange-500 text-4xl mb-3">✅</div>
+            <h3 className="text-xl font-semibold mb-2">
+              Verified Providers
+            </h3>
+            <p className="text-gray-600">
+              All tour providers are verified for safety and quality.
+            </p>
+          </div>
+          <div className="p-6 rounded-xl shadow hover:shadow-lg transition">
+            <div className="text-orange-500 text-4xl mb-3">⚡</div>
+            <h3 className="text-xl font-semibold mb-2">
+              Fast & Easy Booking
+            </h3>
+            <p className="text-gray-600">
+              Simple booking process and instant confirmations.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-gray-900 text-gray-300 py-10 mt-auto">
+        <div className="container mx-auto px-6 text-center space-y-3">
+          <h3 className="text-orange-500 text-xl font-semibold">
+            AI-TRAVEL
+          </h3>
+          <p>
+            © {new Date().getFullYear()} AI-Travel. All rights reserved.
+          </p>
+          <div className="flex justify-center gap-5 text-lg">
+            <a href="#" className="hover:text-white">
+              Facebook
+            </a>
+            <a href="#" className="hover:text-white">
+              Instagram
+            </a>
+            <a href="#" className="hover:text-white">
+              Twitter
+            </a>
+          </div>
+        </div>
       </footer>
     </div>
   );
