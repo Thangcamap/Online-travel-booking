@@ -7,6 +7,7 @@ import StatCard from "../components/StatCard";
 import TourManagement from "../components/TourManagement";
 import AddTourForm from "../components/AddTourForm";
 import { getTours, getProviderByUser } from "../api/tours-api";
+import { Link } from "react-router-dom"; 
 
 export default function ProviderDashboard() {
   const [provider, setProvider] = useState(null);
@@ -110,9 +111,12 @@ export default function ProviderDashboard() {
             <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center shadow-md">
               <span className="text-white font-bold text-base">AI</span>
             </div>
-            <h1 className="text-2xl font-bold text-orange-600">
-              AI-Travel 
-            </h1>
+            <Link
+  to="/home"
+  className="text-2xl font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer"
+>
+  AI-Travel
+</Link>
           </div>
           <p className="text-orange-500 text-sm">Quản lý tour du lịch của bạn</p>
         </div>
