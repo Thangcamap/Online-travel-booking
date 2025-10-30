@@ -216,7 +216,7 @@ const Home = () => {
             <p className="text-gray-500">No tours available yet.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {filteredTours.slice(0, 8).map((tour) => (
+              {filteredTours.slice(0, 100).map((tour) => (
                 <div
                   key={tour.tour_id}
                   className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-transform hover:-translate-y-2"
