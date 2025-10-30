@@ -14,9 +14,9 @@ const Home = () => {
   const [search, setSearch] = useState("");
 
   // Nếu chưa login → quay về login
-  useEffect(() => {
-    if (!authUser) navigate("/login");
-  }, [authUser, navigate]);
+  // useEffect(() => {
+  //   if (!authUser) navigate("/login");
+  // }, [authUser, navigate]);
 
   // Lấy danh sách tour
   useEffect(() => {
@@ -34,7 +34,7 @@ const Home = () => {
   // Đăng xuất
   const handleLogout = () => {
     setAuthUser(null);
-    navigate("/login");
+    navigate("/home");
   };
 
   // Lọc tour theo từ khóa

@@ -19,3 +19,8 @@ ALTER TABLE tour_itineraries CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_un
 
 
 SET foreign_key_checks = 1;
+
+
+
+INSERT INTO users (name, email, password, role)
+VALUES ('admin', 'admin@gmail.com', '$2b$10$hs40kZ1tOuUqu.WSCoOISuXA8cEov661oM2HcV2w8ZH2bS51vjMFC', 'admin');

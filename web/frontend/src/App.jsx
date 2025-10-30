@@ -36,22 +36,11 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
-
-              {/* ✅ Trang home (bắt buộc đăng nhập, ai cũng được) */}
-              <Route
-                path="/home"
-                element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                }
-              />
-
               {/* Trang public hoặc test */}
                <Route path="/provider-dashboard" element={<ProviderDashboard />} />
               <Route path="/" element={<CreateProvided />} />
               <Route path="/ai" element={<AI />} />
+               <Route path="/home"element={<Home />}/>
 
             </Routes>
           </div>
