@@ -174,6 +174,51 @@ router.get("/user/:userId", async (req, res) => {
   }
 });
 
+// 🟢 Lấy provider theo provider_id (có địa chỉ)
+router.get("/:providerId", async (req, res) => {
+  try {
+    const { providerId } = req.params;
+
+    const [rows] = await pool.query(
+      `SELECT 
+          p.provider_id,
+          p.company_name,
+          p.description,
+          p.email,
+          p.phone_number,
+          p.logo_url,
+          p.cover_url,
+          p.approval_status,
+          p.created_at,
+          a.address_line1 AS address,
+          a.city,
+          a.country
+       FROM tour_providers p
+       LEFT JOIN addresses a ON p.address_id = a.address_id
+       WHERE p.provider_id = ?`,
+      [providerId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy nhà cung cấp này.",
+      });
+    }
+
+    res.json({
+      success: true,
+      provider: rows[0],
+    });
+  } catch (error) {
+    console.error("❌ Error fetching provider:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching provider details.",
+    });
+  }
+});
+
 
 
 module.exports = router;

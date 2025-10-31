@@ -17,9 +17,22 @@ router.post("/chat", async (req, res) => {
       [uuidv4(), user_id, message]
     );
 
-    // 2️⃣ Trích từ khóa bằng OpenAI
+    // 2️⃣ Nhận diện ngày tháng trong tin nhắn (VD: "31 tháng 10", "1/11", "2-11", ...)
+    const dateMatch =
+      message.match(/\b(\d{1,2})[\/\-\. ]?tháng[\/\-\. ]?(\d{1,2})\b/i) ||
+      message.match(/\b(\d{1,2})[\/\-\. ](\d{1,2})\b/);
+    let searchDate = null;
+    if (dateMatch) {
+      const day = parseInt(dateMatch[1]);
+      const month = parseInt(dateMatch[2]);
+      const year = new Date().getFullYear();
+      searchDate = `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+      console.log("📅 Ngày được phát hiện trong tin nhắn:", searchDate);
+    }
+
+    // 3️⃣ Trích từ khóa bằng OpenAI
     const keywordPrompt = `
-Phân tích câu sau và liệt kê các TỪ KHÓA du lịch quan trọng (tên địa điểm, hoạt động, món ăn, phong cách, thời gian,...):
+Phân tích câu sau và liệt kê các TỪ KHÓA du lịch quan trọng (địa điểm, hoạt động, món ăn, phong cách, thời gian,...):
 "${message}"
 Trả về JSON ví dụ:
 {"keywords":["Huế","ẩm thực","nghỉ dưỡng","biển"]}
@@ -48,24 +61,36 @@ Trả về JSON ví dụ:
         .filter((x) => x.length > 2);
     }
 
-    // 3️⃣ Lấy danh sách tour + lịch trình từ DB
-    const [tours] = await pool.query(`
+    // 4️⃣ Lấy danh sách tour, lọc theo ngày nếu có
+    let query = `
       SELECT 
         t.tour_id, t.name, t.description, t.price, t.currency,
         (SELECT image_url FROM images WHERE entity_type='tour' AND entity_id=t.tour_id LIMIT 1) AS image_url,
         p.company_name AS provider,
         IFNULL(AVG(r.rating), 0) AS avg_rating,
-        COUNT(DISTINCT b.booking_id) AS total_bookings
+        COUNT(DISTINCT b.booking_id) AS total_bookings,
+        t.start_date, t.end_date
       FROM tours t
       LEFT JOIN reviews r ON t.tour_id = r.tour_id
       LEFT JOIN bookings b ON t.tour_id = b.tour_id
       LEFT JOIN tour_providers p ON t.provider_id = p.provider_id
       WHERE t.available = TRUE
+    `;
+
+    const params = [];
+    if (searchDate) {
+      query += ` AND t.start_date <= ? AND t.end_date >= ?`;
+      params.push(searchDate, searchDate);
+    }
+
+    query += `
       GROUP BY t.tour_id
       ORDER BY avg_rating DESC, total_bookings DESC;
-    `);
+    `;
 
-    // 4️⃣ Lấy thêm lịch trình cho từng tour
+    const [tours] = await pool.query(query, params);
+
+    // 5️⃣ Lấy thêm lịch trình
     const [itineraries] = await pool.query(`
       SELECT tour_id, day_number, title, description
       FROM tour_itineraries
@@ -78,27 +103,24 @@ Trả về JSON ví dụ:
       itineraryMap[it.tour_id].push(it);
     });
 
-    // 5️⃣ Tính điểm phù hợp (bao gồm mô tả + lịch trình)
+    // 6️⃣ Tính điểm phù hợp theo từ khóa
     const scoredTours = tours
       .map((t) => {
-        const itTexts = itineraryMap[t.tour_id]?.map(it => `${it.title} ${it.description}`.toLowerCase()).join(" ") || "";
+        const itTexts =
+          itineraryMap[t.tour_id]?.map((it) => `${it.title} ${it.description}`.toLowerCase()).join(" ") || "";
         const text = `${t.name} ${t.description} ${itTexts}`.toLowerCase();
         let score = 0;
         for (const kw of keywords) {
           if (text.includes(kw.toLowerCase())) score++;
         }
-        return { 
-          ...t, 
-          itineraries: itineraryMap[t.tour_id] || [],
-          score 
-        };
+        return { ...t, itineraries: itineraryMap[t.tour_id] || [], score };
       })
-      .filter((t) => t.score > 0)
+      .filter((t) => t.score > 0 || searchDate) // nếu có ngày thì vẫn giữ
       .sort((a, b) => b.score - a.score || b.avg_rating - a.avg_rating);
 
     const matchedTours = scoredTours.length > 0 ? scoredTours.slice(0, 5) : tours.slice(0, 5);
 
-    // 6️⃣ Lấy lịch sử hội thoại gần nhất
+    // 7️⃣ Lấy lịch sử hội thoại gần nhất
     const [history] = await pool.query(
       `SELECT role, message FROM ai_messages WHERE user_id = ? ORDER BY created_at ASC LIMIT 15`,
       [user_id]
@@ -108,29 +130,34 @@ Trả về JSON ví dụ:
       .map((m) => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.message}`)
       .join("\n");
 
-    // 7️⃣ Prompt để tạo phản hồi tự nhiên
+    // 8️⃣ Prompt tạo phản hồi tự nhiên
     const prompt = `
-Bạn là trợ lý du lịch thông minh. Hãy trả lời tự nhiên và gợi ý 2–3 tour nổi bật.
+Bạn là trợ lý du lịch thông minh. Hãy trả lời tự nhiên, gợi ý 2–3 tour phù hợp.
 
 Người dùng: "${message}"
 Từ khóa: ${keywords.join(", ")}
+Thời gian người dùng hỏi: ${searchDate || "Không xác định"}
 
-Danh sách tour phù hợp:
+Danh sách tour:
 ${matchedTours
   .map(
     (t, i) => `
 ${i + 1}. ${t.name} (${t.provider || "Không rõ"})
+   - Từ ${t.start_date} đến ${t.end_date}
    - ${t.description?.slice(0, 100) || "Không có mô tả"}...
    - Giá: ${t.price?.toLocaleString() || "Liên hệ"} ${t.currency || "VND"}
    - Đánh giá: ${parseFloat(t.avg_rating || 0).toFixed(1)}/5
    - Lịch trình mẫu:
-${(t.itineraries || []).slice(0, 3).map(it => `      • Ngày ${it.day_number}: ${it.title} - ${it.description?.slice(0, 60)}...`).join("\n")}
+${(t.itineraries || [])
+  .slice(0, 3)
+  .map((it) => `      • Ngày ${it.day_number}: ${it.title} - ${it.description?.slice(0, 60)}...`)
+  .join("\n")}
 `
   )
   .join("\n")}
 `;
 
-    // 8️⃣ Gọi OpenAI để tạo phản hồi
+    // 9️⃣ Gọi OpenAI tạo phản hồi
     const completion = await openai.responses.create({
       model: "gpt-4.1-mini",
       input: prompt,
@@ -138,7 +165,7 @@ ${(t.itineraries || []).slice(0, 3).map(it => `      • Ngày ${it.day_number}:
 
     const aiReply = completion.output[0].content[0].text;
 
-    // 9️⃣ Lưu phản hồi AI
+    // 🔟 Lưu phản hồi AI
     await pool.query(
       `INSERT INTO ai_messages (message_id, user_id, role, message)
        VALUES (?, ?, 'assistant', ?)`,
@@ -150,6 +177,7 @@ ${(t.itineraries || []).slice(0, 3).map(it => `      • Ngày ${it.day_number}:
       reply: aiReply,
       keywords,
       tours: matchedTours,
+      searchDate,
     });
   } catch (err) {
     console.error("❌ AI chat error:", err);

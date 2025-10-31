@@ -60,3 +60,6 @@ export const getProviderByUser = async (userId) => {
   return res.data;
 };
 
+export const getProviderById = (providerId) =>
+  axios.get(`/providers/${providerId}`);
+

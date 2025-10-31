@@ -1,18 +1,20 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { MapPin, TrendingUp, Users, Calendar, Plus, List } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Home, LogOut, Info, BarChart3, List, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import StatCard from "../components/StatCard";
 import TourManagement from "../components/TourManagement";
 import AddTourForm from "../components/AddTourForm";
 import { getTours, getProviderByUser } from "../api/tours-api";
-import { Link } from "react-router-dom"; 
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import ProviderInfo from "../components/ProviderInfo";
 
 export default function ProviderDashboard() {
   const [provider, setProvider] = useState(null);
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("info");
   const [stats, setStats] = useState({
     totalTours: 0,
     activeTours: 0,
@@ -43,31 +45,25 @@ export default function ProviderDashboard() {
       try {
         const user = JSON.parse(localStorage.getItem("user"));
         if (!user?.user_id) {
+          console.warn("⚠️ Không tìm thấy thông tin người dùng trong localStorage.");
           setLoading(false);
           return;
         }
 
         const providerRes = await getProviderByUser(user.user_id);
-        if (!providerRes.exists) {
-          alert("Bạn chưa đăng ký làm nhà cung cấp tour (provider).");
-          setLoading(false);
-          return;
-        }
 
-        if (providerRes.provider.approval_status !== "approved") {
-          alert(
-            "Tài khoản provider của bạn đang chờ admin phê duyệt.\nBạn chưa thể sử dụng chức năng quản lý tour."
-          );
-          setProvider(providerRes.provider);
+        if (!providerRes.exists) {
+          console.warn("🚫 Người dùng chưa là nhà cung cấp tour. Truy cập bị chặn.");
+          setProvider(null);
           setLoading(false);
           return;
         }
 
         setProvider(providerRes.provider);
         await fetchTours(providerRes.provider.provider_id);
-        setLoading(false);
       } catch (error) {
         console.error("❌ Lỗi khi tải provider:", error);
+      } finally {
         setLoading(false);
       }
     };
@@ -75,130 +71,165 @@ export default function ProviderDashboard() {
     init();
   }, []);
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="flex justify-center items-center h-screen text-orange-600 font-medium text-lg">
+      <div className="flex justify-center items-center h-screen text-orange-600 font-medium">
         Đang tải dữ liệu...
       </div>
     );
-  }
 
-  if (!provider || provider.approval_status !== "approved") {
+  // 🧱 Nếu không phải provider => chỉ hiển thị thông báo, không redirect
+  if (!provider)
     return (
-      <div className="flex flex-col justify-center items-center h-screen text-center">
-        <div className="bg-orange-100 border border-orange-300 p-6 rounded-xl shadow-sm">
-          <h2 className="text-2xl font-semibold text-orange-700 mb-2">
-            🚫 Không thể truy cập trang quản lý tour
-          </h2>
-          <p className="text-orange-600">
-            {provider
-              ? "Tài khoản provider của bạn đang chờ phê duyệt."
-              : "Bạn chưa đăng ký làm nhà cung cấp (provider)."}
-          </p>
+      <div className="flex flex-col items-center justify-center h-screen text-center">
+        <div className="text-3xl font-bold text-red-500 mb-3">
+          🚫 Truy cập bị chặn
         </div>
+        <p className="text-gray-600 mb-1">
+          Bạn cần trở thành <span className="font-medium">nhà cung cấp tour</span> để truy cập trang này.
+        </p>
       </div>
     );
-  }
 
-  const providerId = provider.provider_id;
+  const providerId = provider?.provider_id;
+
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/login";
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white text-gray-800">
-      {/* Header */}
-      <div className="bg-white/90 border-b border-orange-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-base">AI</span>
-            </div>
-            <Link
-  to="/home"
-  className="text-2xl font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer"
->
-  AI-Travel
-</Link>
+    <div className="min-h-screen grid grid-cols-[260px_1fr] bg-gray-50">
+      {/* SIDEBAR */}
+      <aside className="bg-white border-r border-gray-200 flex flex-col justify-between">
+        <div>
+          {/* Header */}
+          <div className="p-4 border-b">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Quản Lý Nhà Cung Cấp Tour
+            </h2>
+            <p className="text-sm text-gray-500">Dashboard</p>
           </div>
-          <p className="text-orange-500 text-sm">Quản lý tour du lịch của bạn</p>
-        </div>
-      </div>
 
-      {/* Main */}
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatCard
-            icon={<MapPin size={24} />}
-            label="Tổng Tour"
-            value={stats.totalTours}
-            color="blue"
-          />
-          <StatCard
-            icon={<TrendingUp size={24} />}
-            label="Tour Hoạt Động"
-            value={stats.activeTours}
-            color="green"
-          />
-          <StatCard
-            icon={<Users size={24} />}
-            label="Tổng Đặt Tour"
-            value={stats.totalBookings}
-            color="purple"
-          />
-          <StatCard
-            icon={<Calendar size={24} />}
-            label="Doanh Thu"
-            value={stats.revenue}
-            color="yellow"
-          />
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-white/90 border border-orange-100 rounded-2xl shadow-md overflow-hidden backdrop-blur-sm">
-          <Tabs defaultValue="list" className="w-full">
-            <TabsList className="w-full justify-start bg-orange-50 border-b border-orange-100 p-0 rounded-t-2xl">
-              <TabsTrigger
-                value="list"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:text-orange-600 data-[state=active]:bg-orange-100 px-6 py-4 gap-2 text-gray-800 transition-all duration-200"
-              >
-                <List className="w-4 h-4" />
-                <span>Danh Sách Tour</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="add"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:text-green-600 data-[state=active]:bg-green-50 px-6 py-4 gap-2 text-gray-800 transition-all duration-200"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Thêm Tour Mới</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="p-6 bg-gradient-to-b from-orange-50 to-white rounded-b-2xl">
-              <TabsContent value="list">
-                <h2 className="text-2xl font-semibold text-orange-600 mb-4">
-                  Danh Sách Tour
-                </h2>
-                <TourManagement
-                  providerId={providerId}
-                  tours={tours}
-                  refresh={() => fetchTours(providerId)}
-                />
-              </TabsContent>
-
-              <TabsContent value="add">
-                <h2 className="text-2xl font-semibold text-green-600 mb-4">
-                  Thêm Tour Mới
-                </h2>
-                <Card className="p-6 border border-orange-100 shadow-sm">
-                  <AddTourForm
-                    providerId={providerId}
-                    onAdded={() => fetchTours(providerId)}
-                  />
-                </Card>
-              </TabsContent>
+          {/* Profile */}
+          <div className="flex flex-col items-center mt-6">
+            <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xl">
+              {provider?.name?.charAt(0)?.toUpperCase() || "P"}
             </div>
-          </Tabs>
+            <p className="mt-2 font-semibold text-gray-800">{provider?.name}</p>
+            <p className="text-sm text-gray-500">{provider?.email}</p>
+          </div>
+
+          {/* Menu */}
+          <nav className="mt-6 px-4 space-y-1">
+            {[
+              { key: "info", label: "Thông tin", icon: <Info size={18} /> },
+              { key: "manage", label: "Quản lý tour", icon: <List size={18} /> },
+              { key: "add", label: "Thêm tour", icon: <Plus size={18} /> },
+              { key: "stats", label: "Thống kê", icon: <BarChart3 size={18} /> },
+            ].map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setActiveTab(item.key)}
+                className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm font-medium transition ${
+                  activeTab === item.key
+                    ? "bg-orange-100 text-orange-600"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </nav>
         </div>
-      </div>
+
+        {/* Footer */}
+        <div className="border-t mt-4 px-4 py-3 space-y-2">
+          <Link
+            to="/home"
+            className="flex items-center gap-2 text-gray-700 hover:text-orange-600"
+          >
+            <Home size={18} /> Trang chủ
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-red-600 hover:text-red-700"
+          >
+            <LogOut size={18} /> Đăng xuất
+          </button>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main className="p-8 overflow-y-auto">
+        {activeTab === "info" && (
+          <div>
+            <ProviderInfo providerId={provider?.provider_id} />
+          </div>
+        )}
+
+        {activeTab === "manage" && (
+          <div>
+            <h1 className="text-2xl font-semibold text-orange-600 mb-4">
+              Quản lý Tour
+            </h1>
+            <TourManagement
+              providerId={providerId}
+              tours={tours}
+              refresh={() => fetchTours(providerId)}
+            />
+          </div>
+        )}
+
+        {activeTab === "add" && (
+          <div>
+            <h1 className="text-2xl font-semibold text-green-600 mb-4">
+              Thêm Tour Mới
+            </h1>
+            <Card className="p-6 border border-green-100 shadow-sm bg-white">
+              <AddTourForm
+                providerId={providerId}
+                onAdded={() => fetchTours(providerId)}
+              />
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "stats" && (
+          <div>
+            <h1 className="text-2xl font-semibold text-orange-600 mb-4">
+              Thống kê
+            </h1>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <StatCard
+                label="Tổng Tour"
+                value={stats.totalTours}
+                color="blue"
+                icon={<List size={24} />}
+              />
+              <StatCard
+                label="Tour hoạt động"
+                value={stats.activeTours}
+                color="green"
+                icon={<BarChart3 size={24} />}
+              />
+              <StatCard
+                label="Đặt Tour"
+                value={stats.totalBookings}
+                color="purple"
+                icon={<Info size={24} />}
+              />
+              <StatCard
+                label="Doanh thu"
+                value={stats.revenue}
+                color="yellow"
+                icon={<BarChart3 size={24} />}
+              />
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
