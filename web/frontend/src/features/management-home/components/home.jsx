@@ -4,6 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 import useAuthUserStore from "@/stores/useAuthUserStore";
 import { Menu } from "@headlessui/react";
 import { ChevronDown } from "lucide-react";
+import AIChat from "../../AI/components/AI";
+import { MessageCircle, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 
 
@@ -12,6 +16,8 @@ const Home = () => {
   const { authUser, setAuthUser } = useAuthUserStore();
   const [tours, setTours] = useState([]);
   const [search, setSearch] = useState("");
+  const [showChat, setShowChat] = useState(false);
+
 
   // Nếu chưa login → quay về login
   // useEffect(() => {
@@ -32,10 +38,17 @@ const Home = () => {
   }, []);
 
   // Đăng xuất
-  const handleLogout = () => {
-    setAuthUser(null);
-    navigate("/home");
-  };
+  // const handleLogout = () => {
+  //   setAuthUser(null);
+  //   navigate("/home");
+  // };
+const handleLogout = () => {
+  localStorage.removeItem("user"); // ❌ Xóa user khỏi localStorage
+  setAuthUser(null);               // ❌ Xóa user khỏi Zustand
+  navigate("/home");               // 🔁 Quay lại trang home
+  window.location.reload();        // ✅ Reload để các component (AIChat) cập nhật ngay
+};
+
 
   // Lọc tour theo từ khóa
   const filteredTours = tours.filter((tour) =>
@@ -312,10 +325,49 @@ const Home = () => {
               Twitter
             </a>
           </div>
+          {/* 🔹 Nút & cửa sổ Chat AI */}
+<div className="fixed bottom-6 right-6 z-50">
+  <AnimatePresence>
+    {showChat ? (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.3 }}
+        className="relative"
+      >
+        <div className="bg-white w-96 max-h-[75vh] shadow-2xl rounded-2xl overflow-y-auto border border-gray-200 flex flex-col">
+
+          <div className="flex justify-between items-center px-4 py-2 bg-orange-500 text-white">
+            <h3 className="font-semibold">AI Travel Assistant</h3>
+            <button onClick={() => setShowChat(false)}>
+              <X size={20} />
+            </button>
+          </div>
+          <div className="h-full">
+            <AIChat />
+          </div>
+        </div>
+      </motion.div>
+    ) : (
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        onClick={() => setShowChat(true)}
+        className="bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-full shadow-lg"
+      >
+        <MessageCircle size={28} />
+      </motion.button>
+    )}
+  </AnimatePresence>
+</div>
+
         </div>
       </footer>
     </div>
   );
 };
+
 
 export default Home;
