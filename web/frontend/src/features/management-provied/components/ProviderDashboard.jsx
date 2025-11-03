@@ -15,6 +15,10 @@ export default function ProviderDashboard() {
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("info");
+
+  // 🟡 thêm state lưu lý do bị chặn
+  const [accessError, setAccessError] = useState("");
+
   const [stats, setStats] = useState({
     totalTours: 0,
     activeTours: 0,
@@ -50,20 +54,37 @@ export default function ProviderDashboard() {
           return;
         }
 
-        const providerRes = await getProviderByUser(user.user_id);
-
-        if (!providerRes.exists) {
-          console.warn("🚫 Người dùng chưa là nhà cung cấp tour. Truy cập bị chặn.");
+        // 🟢 sửa: thêm setAccessError để biết lý do bị chặn
+        if (user.status && user.status !== "active") {
+          console.warn("🚫 Tài khoản người dùng đã bị khóa/tạm ngưng.");
+          setAccessError("user_blocked");
           setProvider(null);
           setLoading(false);
           return;
         }
-        if (providerRes.provider.approval_status !== "approved") {
-          console.warn("🚫 Nhà cung cấp chưa được admin duyệt. Truy cập bị chặn.");
+
+        const providerRes = await getProviderByUser(user.user_id);
+
+        // 🟢 sửa: thêm phân loại lỗi
+        if (!providerRes.exists) {
+          console.warn("🚫 Người dùng chưa là nhà cung cấp tour. Truy cập bị chặn.");
+          setAccessError("not_provider");
           setProvider(null);
           setLoading(false);
           return;
-      }
+        }
+
+        if (
+          providerRes.provider.status !== "active" ||
+          providerRes.provider.approval_status !== "approved"
+        ) {
+          console.warn("🚫 Nhà cung cấp không hoạt động hoặc chưa được duyệt.");
+          setAccessError("provider_blocked");
+          setProvider(null);
+          setLoading(false);
+          return;
+        }
+
         setProvider(providerRes.provider);
         await fetchTours(providerRes.provider.provider_id);
       } catch (error) {
@@ -83,19 +104,48 @@ export default function ProviderDashboard() {
       </div>
     );
 
-  // 🧱 Nếu không phải provider => chỉ hiển thị thông báo, không redirect
+  // 🟢 sửa: hiển thị thông báo khác nhau theo lý do bị chặn
   if (!provider)
     return (
       <div className="flex flex-col items-center justify-center h-screen text-center">
-        <div className="text-3xl font-bold text-red-500 mb-3">
-          🚫 Truy cập bị chặn
-        </div>
-        <p className="text-gray-600 mb-1">
-          Bạn cần trở thành <span className="font-medium">nhà cung cấp tour</span> để truy cập trang này.
-        </p>
-              <Link to="/">
-        <Button className="bg-orange-600 text-white hover:bg-orange-700">Đăng ký ngay</Button>
-      </Link>
+        {accessError === "user_blocked" && (
+          <>
+            <div className="text-3xl font-bold text-red-500 mb-3">
+              🚫 Tài khoản người dùng đã bị khóa/tạm ngưng.
+            </div>
+            <p className="text-gray-600 mb-1">
+              Vui lòng liên hệ quản trị viên để được mở khóa.
+            </p>
+          </>
+        )}
+
+        {accessError === "provider_blocked" && (
+          <>
+            <div className="text-3xl font-bold text-red-500 mb-3">
+              🚫 Nhà cung cấp không hoạt động hoặc chưa được duyệt.
+            </div>
+            <p className="text-gray-600 mb-1">
+              Vui lòng chờ duyệt hoặc liên hệ hỗ trợ để kích hoạt lại.
+            </p>
+          </>
+        )}
+
+        {(accessError === "not_provider" || !accessError) && (
+          <>
+            <div className="text-3xl font-bold text-red-500 mb-3">
+              🚫 Truy cập bị chặn
+            </div>
+            <p className="text-gray-600 mb-1">
+              Bạn cần trở thành{" "}
+              <span className="font-medium">nhà cung cấp tour</span> để truy cập trang này.
+            </p>
+            <Link to="/">
+              <Button className="bg-orange-600 text-white hover:bg-orange-700">
+                Đăng ký ngay
+              </Button>
+            </Link>
+          </>
+        )}
       </div>
     );
 
@@ -120,13 +170,13 @@ export default function ProviderDashboard() {
           </div>
 
           {/* Profile */}
-<div className="flex flex-col items-center mt-6">
-  <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xl">
-    {provider?.company_name?.charAt(0)?.toUpperCase() || "P"}
-  </div>
-  <p className="mt-2 font-semibold text-gray-800">{provider?.company_name}</p>
-  <p className="text-sm text-gray-500">{provider?.email}</p>
-</div>
+          <div className="flex flex-col items-center mt-6">
+            <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xl">
+              {provider?.company_name?.charAt(0)?.toUpperCase() || "P"}
+            </div>
+            <p className="mt-2 font-semibold text-gray-800">{provider?.company_name}</p>
+            <p className="text-sm text-gray-500">{provider?.email}</p>
+          </div>
 
           {/* Menu */}
           <nav className="mt-6 px-4 space-y-1">

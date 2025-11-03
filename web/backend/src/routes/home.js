@@ -23,6 +23,20 @@ router.get("/tours", async (req, res) => {
           LIMIT 1) AS image_url
       FROM tours t
       LEFT JOIN tour_providers tp ON t.provider_id = tp.provider_id
+      
+
+
+            LEFT JOIN users u ON tp.user_id = u.user_id  -- ✅ thêm để kiểm tra trạng thái user
+      WHERE 
+        t.available = 1                             -- ✅ tour đang hiển thị
+        AND tp.status = 'active'                    -- ✅ provider đang hoạt động
+        AND tp.approval_status = 'approved'         -- ✅ provider đã được admin duyệt
+        AND u.status = 'active'
+
+        /*  BỔ SUNG: Ẩn tour nếu provider bị khóa hoặc chưa duyệt */
+        AND tp.approval_status = 'approved'         
+        AND tp.status = 'active'                   
+        AND u.status = 'active' 
       ORDER BY t.created_at DESC`
     );
 

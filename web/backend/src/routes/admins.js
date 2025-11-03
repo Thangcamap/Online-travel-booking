@@ -81,36 +81,55 @@ router.get("/users", async (req, res) => {
   }
 });
 // ✅ Cập nhật trạng thái user
+// ✅ Cập nhật trạng thái user + đồng bộ provider/tour
 router.put("/users/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body; // 'active', 'inactive', 'suspended'
 
+    // 🔹 Cập nhật user trước
     await pool.query("UPDATE users SET status = ? WHERE user_id = ?", [status, id]);
 
-    // ✅ Nếu user bị khóa hoặc tạm ngưng
     if (status !== "active") {
-      // 1️⃣ Khóa luôn provider tương ứng
+      // 🔴 Khi khóa user: khóa luôn provider & tour
       await pool.query(
         "UPDATE tour_providers SET status = 'suspended' WHERE user_id = ?",
         [id]
       );
 
-      // 2️⃣ Ẩn tất cả tour của provider đó
       await pool.query(
         `UPDATE tours 
          SET available = 0 
-         WHERE provider_id IN (SELECT provider_id FROM tour_providers WHERE user_id = ?)`,
+         WHERE provider_id IN (SELECT provider_id FROM tour_providers WHERE user_id = ?);`,
+        [id]
+      );
+    } else {
+      // 🟢 Khi mở lại user: mở luôn provider & tour nếu có
+      await pool.query(
+        `UPDATE tour_providers 
+         SET status = 'active' 
+         WHERE user_id = ? AND approval_status = 'approved';`, // chỉ mở lại provider đã được duyệt
+        [id]
+      );
+
+      await pool.query(
+        `UPDATE tours 
+         SET available = 1 
+         WHERE provider_id IN (
+            SELECT provider_id FROM tour_providers 
+            WHERE user_id = ? AND approval_status = 'approved'
+         );`,
         [id]
       );
     }
 
-    res.json({ success: true, message: `User status updated to ${status}` });
+    res.json({ success: true, message: `User and related data updated to ${status}` });
   } catch (error) {
     console.error("❌ Error updating user status:", error);
     res.status(500).json({ success: false, error: "Server error updating user status." });
   }
 });
+
 
 // ✅ Lấy danh sách tất cả tour và tổng doanh thu hệ thống
 router.get("/tours", async (req, res) => {
@@ -124,8 +143,10 @@ router.get("/tours", async (req, res) => {
         COUNT(b.booking_id) AS total_bookings,
         COALESCE(SUM(p.amount), 0) AS total_revenue
       FROM tours t
+      JOIN tour_providers tp ON t.provider_id = tp.provider_id
       LEFT JOIN bookings b ON t.tour_id = b.tour_id
       LEFT JOIN payments p ON b.booking_id = p.booking_id AND p.status = 'paid'
+      WHERE tp.status = 'active' AND tp.approval_status = 'approved'
       GROUP BY t.tour_id
     `);
 
