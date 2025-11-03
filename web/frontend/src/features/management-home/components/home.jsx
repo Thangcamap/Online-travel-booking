@@ -187,36 +187,82 @@ const handleLogout = () => {
       </header>
 
       {/* HERO SECTION */}
-      <section
-        className="relative w-full h-[85vh] flex items-center justify-center text-center bg-cover bg-center"
-        style={{
-          backgroundImage: "url('/src/assets/images/hero.jpg')",
-        }}
-      >
-        <div className="absolute inset-0 bg-black/60"></div>
-        <div className="relative z-10 text-white px-4">
-          <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">
-            Explore the World with AI-Travel
-          </h1>
-          <p className="text-lg mb-8 opacity-90">
-            Find your next adventure with AI-powered recommendations.
-          </p>
+<section
+  className="relative w-full h-[85vh] flex flex-col justify-center items-center text-center bg-cover bg-center"
+  style={{
+    backgroundImage: "url('/src/assets/images/Home1.png')",
+  }}
+>
+  {/* Lớp phủ tối */}
+  <div className="absolute inset-0 bg-black/28"></div>
 
-          {/* Search bar */}
-          <div className="bg-white flex flex-col md:flex-row gap-3 p-4 rounded-xl shadow-lg max-w-3xl mx-auto">
-            <input
-              type="text"
-              placeholder="Search destinations..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-orange-400"
+  <div className="relative z-10 w-full max-w-7xl px-6">
+    <h1 className="text-5xl font-bold mb-6 text-white drop-shadow-lg">
+      Explore Top Tours
+    </h1>
+    <p className="text-lg mb-10 text-gray-100 opacity-90">
+      Discover our most popular destinations with AI-Travel
+    </p>
+
+    {/* Slider container */}
+    <div className="relative flex items-center">
+      {/* Nút mũi tên trái */}
+      <button
+        className="absolute left-0 z-20 bg-orange-500 text-white p-3 rounded-full shadow-lg hover:bg-orange-600 transition"
+        onClick={() =>
+          document
+            .getElementById("tour-slider")
+            .scrollBy({ left: -400, behavior: "smooth" })
+        }
+      >
+        ◀
+      </button>
+
+      {/* Dải tour ngang */}
+      <div
+        id="tour-slider"
+        className="flex gap-6 overflow-x-auto scroll-smooth hide-scrollbar px-12 py-4 w-full"
+      >
+        {tours.slice(0, 5).map((tour) => (
+          <div
+            key={tour.tour_id}
+            onClick={() => navigate("/login")}
+            className="min-w-[320px] bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-transform duration-300"
+          >
+            <img
+              src={tour.image_url || "/src/assets/images/default-tour.jpg"}
+              alt={tour.name}
+              className="h-56 w-full object-cover"
             />
-            <button className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition">
-              Search
-            </button>
+            <div className="p-4 text-left">
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                {tour.name}
+              </h3>
+              <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+                {tour.description || "No description available."}
+              </p>
+              <span className="text-orange-500 font-semibold">
+                {Number(tour.price).toLocaleString()} {tour.currency || "VND"}
+              </span>
+            </div>
           </div>
-        </div>
-      </section>
+        ))}
+      </div>
+
+      {/* Nút mũi tên phải */}
+      <button
+        className="absolute right-0 z-20 bg-orange-500 text-white p-3 rounded-full shadow-lg hover:bg-orange-600 transition"
+        onClick={() =>
+          document
+            .getElementById("tour-slider")
+            .scrollBy({ left: 400, behavior: "smooth" })
+        }
+      >
+        ▶
+      </button>
+    </div>
+  </div>
+</section>
 
       {/* POPULAR TOURS */}
       <section className="py-16 bg-gray-100">
