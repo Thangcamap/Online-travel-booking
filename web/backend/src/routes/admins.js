@@ -54,9 +54,13 @@ router.put("/providers/:id/approve", async (req, res) => {
     const { status } = req.body; // 'approved' hoặc 'rejected'
 
     await pool.query(
-      "UPDATE tour_providers SET approval_status = ? WHERE provider_id = ?",
-      [status, id]
-    );
+  `UPDATE tour_providers 
+   SET approval_status = ?, 
+       status = CASE WHEN ? = 'rejected' THEN 'inactive' ELSE status END
+   WHERE provider_id = ?`,
+  [status, status, id]
+);
+
 
     res.json({ success: true, message: `Provider ${status} successfully.` });
   } catch (error) {
@@ -84,12 +88,30 @@ router.put("/users/:id/status", async (req, res) => {
 
     await pool.query("UPDATE users SET status = ? WHERE user_id = ?", [status, id]);
 
+    // ✅ Nếu user bị khóa hoặc tạm ngưng
+    if (status !== "active") {
+      // 1️⃣ Khóa luôn provider tương ứng
+      await pool.query(
+        "UPDATE tour_providers SET status = 'suspended' WHERE user_id = ?",
+        [id]
+      );
+
+      // 2️⃣ Ẩn tất cả tour của provider đó
+      await pool.query(
+        `UPDATE tours 
+         SET available = 0 
+         WHERE provider_id IN (SELECT provider_id FROM tour_providers WHERE user_id = ?)`,
+        [id]
+      );
+    }
+
     res.json({ success: true, message: `User status updated to ${status}` });
   } catch (error) {
     console.error("❌ Error updating user status:", error);
     res.status(500).json({ success: false, error: "Server error updating user status." });
   }
 });
+
 // ✅ Lấy danh sách tất cả tour và tổng doanh thu hệ thống
 router.get("/tours", async (req, res) => {
   try {

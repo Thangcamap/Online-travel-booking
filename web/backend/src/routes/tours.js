@@ -39,16 +39,34 @@ const checkProviderApproved = async (req, res, next) => {
 
   try {
     const [rows] = await pool.query(
-      "SELECT approval_status FROM tour_providers WHERE provider_id = ?",
+      `SELECT tp.approval_status, tp.status AS provider_status, u.status AS user_status
+       FROM tour_providers tp
+       JOIN users u ON tp.user_id = u.user_id
+       WHERE tp.provider_id = ?`,
       [providerId]
     );
 
     if (rows.length === 0)
-      return res
-        .status(404)
-        .json({ success: false, message: "Không tìm thấy provider." });
+      return res.status(404).json({ success: false, message: "Không tìm thấy provider." });
 
-    if (rows[0].approval_status !== "approved")
+    const { approval_status, provider_status, user_status } = rows[0];
+
+    // ❌ User bị khóa
+    if (user_status !== "active")
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản người dùng đã bị khóa hoặc tạm ngưng.",
+      });
+
+    // ❌ Provider bị khóa
+    if (provider_status !== "active")
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản nhà cung cấp đang bị khóa hoặc tạm ngưng.",
+      });
+
+    // ❌ Provider chưa được duyệt
+    if (approval_status !== "approved")
       return res.status(403).json({
         success: false,
         message: "Provider chưa được phê duyệt, không thể CRUD tour.",
@@ -61,6 +79,7 @@ const checkProviderApproved = async (req, res, next) => {
     res.status(500).json({ success: false, message: "Server error." });
   }
 };
+
 
 // --- 🟢 Upload ảnh (đặt TRƯỚC route có param) ---
 router.post("/:tour_id/upload-image", upload.single("image"), async (req, res) => {

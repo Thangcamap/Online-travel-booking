@@ -62,6 +62,21 @@ export default function TourProviderForm() {
   const queryClient = useQueryClient();
   const { authUser } = useAuthUserStore();
 
+  // ⚠️ Nếu user bị khóa thì chặn luôn form
+  if (authUser?.status && authUser.status !== "active") {
+    return (
+      <div className="flex flex-col items-center justify-center h-80 text-center text-gray-700">
+        <span className="text-6xl mb-4">🚫</span>
+        <p className="text-lg font-semibold">
+          Tài khoản của bạn đã bị khóa hoặc tạm ngưng.
+        </p>
+        <p className="text-sm text-gray-500">
+          Bạn không thể đăng ký làm nhà cung cấp trong lúc này.
+        </p>
+      </div>
+    );
+  }
+
   // ✅ Lấy trạng thái provider của user hiện tại
   const { data: providerData, isLoading: checkingProvider } = useQuery({
     queryKey: ["providerByUser", authUser?.user_id],
@@ -235,6 +250,7 @@ export default function TourProviderForm() {
             </AlertDialogContent>
           </AlertDialog>
 
+          {/* FORM */}
           <div className="max-w-2xl mx-auto py-10 px-4 space-y-8">
             <div className="text-center space-y-2">
               <h1 className="text-3xl font-bold text-orange-600">Đăng ký nhà cung cấp tour</h1>

@@ -58,7 +58,12 @@ export default function ProviderDashboard() {
           setLoading(false);
           return;
         }
-
+        if (providerRes.provider.approval_status !== "approved") {
+          console.warn("🚫 Nhà cung cấp chưa được admin duyệt. Truy cập bị chặn.");
+          setProvider(null);
+          setLoading(false);
+          return;
+      }
         setProvider(providerRes.provider);
         await fetchTours(providerRes.provider.provider_id);
       } catch (error) {
@@ -88,6 +93,9 @@ export default function ProviderDashboard() {
         <p className="text-gray-600 mb-1">
           Bạn cần trở thành <span className="font-medium">nhà cung cấp tour</span> để truy cập trang này.
         </p>
+              <Link to="/">
+        <Button className="bg-orange-600 text-white hover:bg-orange-700">Đăng ký ngay</Button>
+      </Link>
       </div>
     );
 
@@ -112,13 +120,13 @@ export default function ProviderDashboard() {
           </div>
 
           {/* Profile */}
-          <div className="flex flex-col items-center mt-6">
-            <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xl">
-              {provider?.name?.charAt(0)?.toUpperCase() || "P"}
-            </div>
-            <p className="mt-2 font-semibold text-gray-800">{provider?.name}</p>
-            <p className="text-sm text-gray-500">{provider?.email}</p>
-          </div>
+<div className="flex flex-col items-center mt-6">
+  <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xl">
+    {provider?.company_name?.charAt(0)?.toUpperCase() || "P"}
+  </div>
+  <p className="mt-2 font-semibold text-gray-800">{provider?.company_name}</p>
+  <p className="text-sm text-gray-500">{provider?.email}</p>
+</div>
 
           {/* Menu */}
           <nav className="mt-6 px-4 space-y-1">

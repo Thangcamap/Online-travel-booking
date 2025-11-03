@@ -7,4 +7,10 @@
 
 
 
-
+# chạy backend 
+cd web/backend
+npm start    
+# chạy frontend   
+ cd web/frontend
+ npm run dev 
+ # chạy project chạy cả backend lẫn frontend truy cập link ở frontend    
