@@ -11,6 +11,7 @@ import Home from "./features/management-home/components/home.jsx";
 import AI from "./features/AI/components/AI";
 import ProtectedRoute from "@/components/ProtectedRoute";  // 🧱 thêm dòng này
 import useAuthUserStore from "@/stores/useAuthUserStore"; // ✅ thêm dòng này
+import PaymentPage from "./features/payments/components/PaymentPage.jsx"; // ✅ thêm dòng này
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
@@ -50,6 +51,8 @@ function App() {
               <Route path="/" element={<CreateProvided />} />
               <Route path="/ai" element={<AI />} />
                <Route path="/home"element={<Home />}/>
+               <Route path="/payments" element={<PaymentPage />} />  // ✅ thêm route này
+
 
             </Routes>
           </div>

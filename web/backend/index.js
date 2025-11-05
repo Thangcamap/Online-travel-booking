@@ -48,7 +48,13 @@ app.use("/api/home", homeRoutes);
 const aiRoutes = require("./src/routes/ai");
 app.use("/api/ai", aiRoutes);
 
+const paymentsRoutes = require("./src/routes/payments");
 
+// ✅ Thêm middleware riêng cho payments (để xử lý ảnh đúng URL)
+app.use("/api/payments", (req, res, next) => {
+  req.BASE_URL = process.env.BASE_URL || "http://localhost:5000"; // thêm BASE_URL
+  next();
+}, paymentsRoutes);
 
 // ✅ Route test
 app.get("/", async (req, res) => {
@@ -56,6 +62,7 @@ app.get("/", async (req, res) => {
   console.log("The solution is:", t[0][0].solution);
   res.send("🚀 Backend is running...");
 });
+
 
 // ✅ Start server
 const PORT = process.env.PORT || 5000;

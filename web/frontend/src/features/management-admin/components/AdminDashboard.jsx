@@ -3,7 +3,10 @@ import React, { useState } from "react";
 import DashboardStats from "./DashboardStats";
 import ManageUsers from "./ManageUsers";
 import PendingProviders from "./PendingProviders";
-import { Users, Building2, LayoutDashboard, LogOut } from "lucide-react";
+//import { Users, Building2, LayoutDashboard, LogOut } from "lucide-react";
+import ManagePayments from "./ManagePayments"; // ✅ thêm
+import { Users, Building2, LayoutDashboard, LogOut, CreditCard } from "lucide-react"; // ✅ thêm icon
+
 import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
@@ -22,6 +25,7 @@ export default function AdminDashboard() {
     { key: "dashboard", label: "Thống kê", icon: <LayoutDashboard className="w-5 h-5" /> },
     { key: "users", label: "Người dùng", icon: <Users className="w-5 h-5" /> },
     { key: "providers", label: "Nhà cung cấp", icon: <Building2 className="w-5 h-5" /> },
+    { key: "payments", label: "Thanh toán", icon: <CreditCard className="w-5 h-5" /> }, // ✅ thêm tab mới
   ];
 
   return (
@@ -82,7 +86,9 @@ export default function AdminDashboard() {
               ? "Tổng quan hệ thống"
               : activeTab === "users"
               ? "Quản lý người dùng"
-              : "Nhà cung cấp"}
+              : activeTab === "providers" //Quang bổ xung 
+              ? "Nhà cung cấp"  //quang sưa : ->?
+              : "Quản lý thanh toán"} {/* ✅ thêm tiêu đề cho tab mới */}
           </h2>
         </header>
 
@@ -90,6 +96,7 @@ export default function AdminDashboard() {
           {activeTab === "dashboard" && <DashboardStats />}
           {activeTab === "users" && <ManageUsers />}
           {activeTab === "providers" && <PendingProviders />}
+          {activeTab === "payments" && <ManagePayments />} {/* ✅ hiển thị trang thanh toán */}
         </section>
       </main>
     </div>

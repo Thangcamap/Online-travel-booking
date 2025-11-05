@@ -130,6 +130,18 @@ const handleLogout = () => {
           <Menu.Item>
             {({ active }) => (
               <button
+                onClick={() => navigate("/payments")}
+                className={`${
+                  active ? "bg-gray-100" : ""
+                } block w-full text-left px-4 py-2 text-sm text-gray-700`}
+              >
+                💳 Thanh toán của tôi
+              </button>
+            )}
+          </Menu.Item>
+          <Menu.Item>
+            {({ active }) => (
+              <button
                 onClick={() => navigate("/")}
                 className={`${
                   active ? "bg-gray-100" : ""

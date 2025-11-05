@@ -157,5 +157,116 @@ router.get("/tours", async (req, res) => {
   }
 });
 
+/// Quang them chuc nang lien quan den payment
+// ✅ QUẢN LÝ THANH TOÁN (ADMIN DASHBOARD)
+router.get("/payments", async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        p.payment_id,
+        p.booking_id,
+        p.amount,
+        p.method,
+        p.status,
+        p.payment_image,
+        p.created_at,
+        p.updated_at,
+        u.name AS user_name,
+        u.email AS user_email,
+        u.phone_number AS user_phone,
+        t.name AS tour_name,
+        tp.company_name AS provider_name
+      FROM payments p
+      JOIN bookings b ON p.booking_id = b.booking_id
+      JOIN users u ON b.user_id = u.user_id
+      JOIN tours t ON b.tour_id = t.tour_id
+      JOIN tour_providers tp ON t.provider_id = tp.provider_id
+      ORDER BY p.created_at DESC
+    `);
+
+    // ✅ Thêm BASE_URL để tạo đường dẫn ảnh đầy đủ
+    const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+    const payments = rows.map((p) => ({
+      ...p,
+      payment_image: p.payment_image
+        ? `${BASE_URL}/${p.payment_image.replace(/^\/+/, "")}`
+        : null,
+    }));
+
+    res.json({ success: true, payments });
+  } catch (error) {
+    console.error("❌ Error fetching payments:", error);
+    res.status(500).json({ success: false, error: "Server error fetching payments." });
+  }
+});
+
+
+
+// ✅ CẬP NHẬT TRẠNG THÁI THANH TOÁN (Admin xác minh thủ công)
+router.put("/payments/:id/status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // "paid" hoặc "unpaid"
+
+    // Cập nhật trạng thái
+    const [result] = await pool.query(
+      `UPDATE payments SET status = ?, updated_at = NOW() WHERE payment_id = ?`,
+      [status, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: "Payment not found." });
+    }
+
+    res.json({
+      success: true,
+      message: `Payment ${id} updated to ${status}.`,
+    });
+  } catch (error) {
+    console.error("❌ Error updating payment status:", error);
+    res.status(500).json({ success: false, error: "Server error updating payment status." });
+  }
+});
+
+
+// ✅ LẤY CHI TIẾT MỘT THANH TOÁN (có ảnh, user, tour)
+router.get("/payments/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `
+      SELECT 
+        p.payment_id,
+        p.amount,
+        p.method,
+        p.status,
+        p.payment_image,
+        p.created_at,
+        u.name AS user_name,
+        u.email AS user_email,
+        u.phone_number,
+        t.name AS tour_name,
+        t.start_date,
+        t.end_date,
+        tp.company_name AS provider_name
+      FROM payments p
+      JOIN bookings b ON p.booking_id = b.booking_id
+      JOIN users u ON b.user_id = u.user_id
+      JOIN tours t ON b.tour_id = t.tour_id
+      JOIN tour_providers tp ON t.provider_id = tp.provider_id
+      WHERE p.payment_id = ?
+      `,
+      [id]
+    );
+
+    if (!rows.length)
+      return res.status(404).json({ success: false, error: "Payment not found" });
+
+    res.json({ success: true, payment: rows[0] });
+  } catch (error) {
+    console.error("❌ Error fetching payment detail:", error);
+    res.status(500).json({ success: false, error: "Server error fetching payment detail." });
+  }
+});
 
 module.exports = router;
