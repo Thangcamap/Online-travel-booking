@@ -13,6 +13,14 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use(authRequestInterceptor);
+// 🟢 CUSTOM TOKEN HANDLER 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 // NOTE: This is a workaround for the issue with axios interceptors
 let isRefeshing = false;
 api.interceptors.response.use(
@@ -51,6 +59,13 @@ api.interceptors.response.use(
           isRefeshing = false;
         }
       }
+    }
+        // 🟠 CUSTOM TOKEN EXPIRED HANDLER
+    if (error.response?.status === 401) {
+      console.warn("⚠️ Token hết hạn hoặc không hợp lệ, tự động logout...");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   },

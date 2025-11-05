@@ -23,9 +23,10 @@ const Login = () => {
       setLoading(true);
       const res = await api.post("/login", form);
 
-      // ✅ Lưu user vào store
+      // ✅ Lưu user + token
       setAuthUser(res.data.user);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("token", res.data.token); 
 
       // ✅ Hiển thị thông báo thành công
       Swal.fire({

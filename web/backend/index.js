@@ -9,7 +9,7 @@ const app = express();
 
 // ✅ Middleware CORS + JSON
 app.use(cors({
-  origin: "http://localhost:5173",
+origin: true,  // ✅ cho phép mọi localhost
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,

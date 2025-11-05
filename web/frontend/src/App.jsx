@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect }  from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import CreateProvided from "./features/management-provied/components/create-provied.jsx";
@@ -10,6 +10,7 @@ import Register from "./features/management-login/components/register.jsx";
 import Home from "./features/management-home/components/home.jsx";
 import AI from "./features/AI/components/AI";
 import ProtectedRoute from "@/components/ProtectedRoute";  // 🧱 thêm dòng này
+import useAuthUserStore from "@/stores/useAuthUserStore"; // ✅ thêm dòng này
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
@@ -17,6 +18,14 @@ import "./App.css";
 const queryClient = new QueryClient();
 
 function App() {
+    const { setAuthUser } = useAuthUserStore();
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      setAuthUser(JSON.parse(savedUser));
+    }
+  }, [setAuthUser]);
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

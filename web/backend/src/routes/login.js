@@ -1,8 +1,10 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken"); // 🧩 thêm dòng này
 const { pool } = require("../../config/mysql");
 
 const router = express.Router();
+const SECRET_KEY = "AI_TRAVEL_SECRET"; // 🧩 bạn có thể để trong .env
 
 router.post("/", async (req, res) => {
   try {
@@ -22,16 +24,17 @@ router.post("/", async (req, res) => {
 
     const user = rows[0];
     const match = await bcrypt.compare(password, user.password);
-
     if (!match)
       return res.status(401).json({ message: "Mật khẩu không đúng." });
-    let adminInfo = null;
-    if (user.role === "admin") {
-      const [adminRows] = await pool.query("SELECT * FROM admins WHERE user_id = ?", [user.user_id]);
-      if (adminRows.length) adminInfo = adminRows[0];
-    }
 
-    // ✅ Chỉ trả thông tin cần thiết, không gửi password
+    // ✅ Tạo token có hiệu lực 1 ngày
+    const token = jwt.sign(
+      { user_id: user.user_id, role: user.role }, // payload
+      SECRET_KEY,
+      { expiresIn: "1d" }
+    );
+
+    // ✅ Không trả password
     const safeUser = {
       user_id: user.user_id,
       name: user.name,
@@ -44,6 +47,7 @@ router.post("/", async (req, res) => {
     return res.status(200).json({
       message: "Đăng nhập thành công!",
       user: safeUser,
+      token, // 👈 gửi token về frontend
     });
   } catch (error) {
     console.error("❌ Lỗi đăng nhập:", error);
