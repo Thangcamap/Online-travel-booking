@@ -7,7 +7,7 @@ const fs = require("fs");
 const { v4: uuidv4 } = require("uuid"); // ✅ Thêm uuid
 
 // Tạo thư mục lưu ảnh nếu chưa có
-const uploadDir = path.join(__dirname, "../uploads");
+const uploadDir = path.join(__dirname, "../../uploads/providers");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
@@ -41,14 +41,8 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const provider_id = `prov_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-
-    // await pool.query(
-    //   `INSERT INTO tour_providers 
-    //   (provider_id, user_id, company_name, description, email, phone_number, address_id)
-    //   VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    //   [provider_id, user_id, company_name, description, email, phone_number, address_id || null]
-    // );
+    // const provider_id = `prov_${Date.now()}`;
+    const provider_id = "prov_" + uuidv4();
     await pool.query(
   `INSERT INTO tour_providers 
   (provider_id, user_id, company_name, description, email, phone_number, address_id, approval_status)
@@ -68,78 +62,53 @@ router.post("/", async (req, res) => {
   }
 });
 
-// 🖼️ Upload ảnh (logo/avatar/cover)
-router.post(
-  "/:providerId/upload",
-  upload.fields([{ name: "avatar" }, { name: "cover" }]),
-  async (req, res) => {
-    try {
-      const { providerId } = req.params;
-      const files = req.files;
+router.post("/:providerId/upload", upload.fields([{ name: "avatar" }, { name: "cover" }]), async (req, res) => {
+  try {
+    const { providerId } = req.params;
+    const files = req.files;
 
-      let avatarUrl = null;
-      let coverUrl = null;
+    let avatarUrl = null;
+    let coverUrl = null;
 
-      // ✅ Nếu có ảnh avatar
-      if (files.avatar) {
-        avatarUrl = `/uploads/${files.avatar[0].filename}`;
+    if (files.avatar) {
+      const file = files.avatar[0];
+      avatarUrl = `${req.protocol}://${req.get("host")}/uploads/providers/${file.filename}`;
 
-        // Cập nhật logo_url trong bảng provider
-        await pool.query(
-          `UPDATE tour_providers SET logo_url = ? WHERE provider_id = ?`,
-          [avatarUrl, providerId]
-        );
+      // Cập nhật bảng provider
+      await pool.query(`UPDATE tour_providers SET logo_url = ? WHERE provider_id = ?`, [avatarUrl, providerId]);
 
-        // Thêm bản ghi vào bảng images
-        await pool.query(
-          `INSERT INTO images (image_id, entity_type, entity_id, image_url, description)
-           VALUES (?, 'provider', ?, ?, ?)`,
-          [
-            `img_${uuidv4()}`, // ✅ Tạo id ảnh bằng UUID
-            providerId,
-            avatarUrl,
-            "Ảnh logo provider",
-          ]
-        );
-      }
-
-      // ✅ Nếu có ảnh cover
-      if (files.cover) {
-        coverUrl = `/uploads/${files.cover[0].filename}`;
-
-        // (nếu có cột cover_url thì cập nhật)
-        await pool.query(
-          `UPDATE tour_providers SET cover_url = ? WHERE provider_id = ?`,
-          [coverUrl, providerId]
-        );
-
-        // Ghi thêm vào bảng images
-        await pool.query(
-          `INSERT INTO images (image_id, entity_type, entity_id, image_url, description)
-           VALUES (?, 'provider', ?, ?, ?)`,
-          [
-            `img_${uuidv4()}`, // ✅ Tạo id ảnh bằng UUID
-            providerId,
-            coverUrl,
-            "Ảnh cover provider",
-          ]
-        );
-      }
-
-      res.json({
-        success: true,
-        message: "✅ Ảnh đã upload và lưu vào DB thành công!",
-        avatarUrl,
-        coverUrl,
-      });
-    } catch (error) {
-      console.error("❌ Upload image error:", error);
-      res
-        .status(500)
-        .json({ success: false, error: "Server error when uploading images." });
+      // Ghi vào bảng images
+      await pool.query(
+        `INSERT INTO images (image_id, entity_type, entity_id, image_url, description)
+         VALUES (?, 'provider', ?, ?, 'Ảnh logo provider')`,
+        [`img_${uuidv4()}`, providerId, avatarUrl]
+      );
     }
+
+    if (files.cover) {
+      const file = files.cover[0];
+      coverUrl = `${req.protocol}://${req.get("host")}/uploads/providers/${file.filename}`;
+
+      await pool.query(`UPDATE tour_providers SET cover_url = ? WHERE provider_id = ?`, [coverUrl, providerId]);
+
+      await pool.query(
+        `INSERT INTO images (image_id, entity_type, entity_id, image_url, description)
+         VALUES (?, 'provider', ?, ?, 'Ảnh cover provider')`,
+        [`img_${uuidv4()}`, providerId, coverUrl]
+      );
+    }
+
+    res.json({
+      success: true,
+      message: "✅ Ảnh provider đã được upload & lưu DB thành công!",
+      avatarUrl,
+      coverUrl,
+    });
+  } catch (error) {
+    console.error("❌ Upload image error:", error);
+    res.status(500).json({ success: false, message: "Server error uploading provider image." });
   }
-);
+});
 
 // 📋 Lấy danh sách provider
 router.get("/", async (req, res) => {
@@ -174,7 +143,7 @@ router.get("/user/:userId", async (req, res) => {
   }
 });
 
-// 🟢 Lấy provider theo provider_id (có địa chỉ)
+// 🟢 Lấy provider theo provider_id (có ảnh từ bảng images)
 router.get("/:providerId", async (req, res) => {
   try {
     const { providerId } = req.params;
@@ -190,7 +159,7 @@ router.get("/:providerId", async (req, res) => {
           p.cover_url,
           p.approval_status,
           p.created_at,
-          a.address_line1 AS address,
+          a.address_line1 AS address_line,
           a.city,
           a.country
        FROM tour_providers p
@@ -206,9 +175,19 @@ router.get("/:providerId", async (req, res) => {
       });
     }
 
+    const provider = rows[0];
+
+    // 🖼️ Lấy thêm ảnh từ bảng images
+    const [images] = await pool.query(
+      `SELECT image_url, description FROM images WHERE entity_type='provider' AND entity_id = ?`,
+      [providerId]
+    );
+
+    provider.images = images;
+
     res.json({
       success: true,
-      provider: rows[0],
+      provider,
     });
   } catch (error) {
     console.error("❌ Error fetching provider:", error);
@@ -218,6 +197,10 @@ router.get("/:providerId", async (req, res) => {
     });
   }
 });
+
+
+
+
 
 
 

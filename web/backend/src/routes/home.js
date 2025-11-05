@@ -24,8 +24,6 @@ router.get("/tours", async (req, res) => {
       FROM tours t
       LEFT JOIN tour_providers tp ON t.provider_id = tp.provider_id
       
-
-
             LEFT JOIN users u ON tp.user_id = u.user_id  -- ✅ thêm để kiểm tra trạng thái user
       WHERE 
         t.available = 1                             -- ✅ tour đang hiển thị

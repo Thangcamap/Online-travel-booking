@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Mail, Phone, MapPin, Building } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import { getProviderById } from "../api/tours-api";
 
 export default function ProviderInfo({ providerId }) {
@@ -27,15 +27,27 @@ export default function ProviderInfo({ providerId }) {
       </div>
     );
 
+  // ✅ Ưu tiên lấy ảnh từ bảng `images` trước, fallback sang cột trong DB
+  const logoImage =
+    provider?.images?.find((img) =>
+      img.description?.toLowerCase().includes("Ảnh logo provider")
+    )?.image_url ||
+    provider?.logo_url ||
+    "/uploads/providers/default-avatar.jpg";
+
+  const coverImage =
+    provider?.images?.find((img) =>
+      img.description?.toLowerCase().includes("Ảnh cover provider")
+    )?.image_url ||
+    provider?.cover_url ||
+    "/uploads/providers/default-cover.jpg";
+
   return (
     <div className="w-full flex flex-col gap-4">
       {/* Ảnh cover */}
       <div className="w-full h-[200px] rounded-xl overflow-hidden relative">
         <img
-          src={
-            provider.cover_url ||
-            `https://picsum.photos/seed/${provider.provider_id}/800/200`
-          }
+          src={coverImage}
           alt="cover"
           className="object-cover w-full h-full"
         />
@@ -50,10 +62,7 @@ export default function ProviderInfo({ providerId }) {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-gray-200 overflow-hidden">
             <img
-              src={
-                provider.logo_url ||
-                `https://i.pravatar.cc/150?u=${provider.provider_id}`
-              }
+              src={logoImage}
               alt="avatar"
               className="object-cover w-full h-full"
             />
@@ -71,13 +80,12 @@ export default function ProviderInfo({ providerId }) {
           <div className="flex items-center gap-2 text-gray-700">
             <Phone size={16} /> {provider.phone_number || "Chưa có số điện thoại"}
           </div>
-<div className="flex items-center gap-2 text-gray-700">
-  <MapPin size={16} />
-  {[provider.address, provider.city, provider.country]
-    .filter(Boolean)
-    .join(", ") || "Chưa có địa chỉ"}
-</div>
-
+          <div className="flex items-center gap-2 text-gray-700">
+            <MapPin size={16} />
+            {[provider.address_line, provider.city, provider.country]
+              .filter((v, i, arr) => v && arr.indexOf(v) === i)
+              .join(", ") || "Chưa có địa chỉ"}
+          </div>
         </div>
       </Card>
     </div>
