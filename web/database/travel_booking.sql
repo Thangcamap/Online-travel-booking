@@ -27,7 +27,7 @@ CREATE TABLE addresses (
 
 -- Bảng nhà cung cấp tour (provider)
 CREATE TABLE tour_providers (
-  provider_id VARCHAR(16) PRIMARY KEY,
+  provider_id VARCHAR(64) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL,
   company_name VARCHAR(255) NOT NULL,
   description TEXT,
@@ -75,7 +75,7 @@ CREATE TABLE tours (
 CREATE TABLE images (
   image_id VARCHAR(16) PRIMARY KEY,
   entity_type ENUM('tour', 'provider', 'user') NOT NULL,
-  entity_id VARCHAR(32) NOT NULL,
+  entity_id VARCHAR(64) NOT NULL,
   image_url VARCHAR(255) NOT NULL,
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

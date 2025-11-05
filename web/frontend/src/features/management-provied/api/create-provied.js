@@ -54,3 +54,15 @@ export const getProviderByUser = async (userId) => {
   const res = await axios.get(`${API_URL}/user/${userId}`);
   return res.data;
 };
+// 📦 Lấy thông tin provider theo providerId
+export const getProviderById = async (providerId) => {
+  try {
+    const res = await axios.get(`${API_URL}/${providerId}`);
+    return res; // ✅ trả nguyên response để component đọc res.data.provider
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy provider theo ID:", error);
+    throw error;
+  }
+};
+
+
