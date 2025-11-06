@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const { pool } = require("../../config/mysql");
+const { notifyUserStatusChange, notifyProviderStatusChange } = require("../../socket");
+
+
 
 // ✅ Lấy danh sách provider chờ duyệt
 router.get("/providers/pending", async (req, res) => {
@@ -47,7 +50,7 @@ router.get("/providers", async (req, res) => {
 });
 
 
-// ✅ Admin duyệt hoặc từ chối provider
+//  Admin duyệt hoặc từ chối provider
 router.put("/providers/:id/approve", async (req, res) => {
   try {
     const { id } = req.params;
@@ -60,6 +63,7 @@ router.put("/providers/:id/approve", async (req, res) => {
    WHERE provider_id = ?`,
   [status, status, id]
 );
+    notifyProviderStatusChange(id, status);
 
 
     res.json({ success: true, message: `Provider ${status} successfully.` });
@@ -68,7 +72,7 @@ router.put("/providers/:id/approve", async (req, res) => {
     res.status(500).json({ success: false, error: "Server error updating approval." });
   }
 });
-// ✅ Lấy danh sách tất cả người dùng
+//  Lấy danh sách tất cả người dùng
 router.get("/users", async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -80,18 +84,18 @@ router.get("/users", async (req, res) => {
     res.status(500).json({ success: false, error: "Server error fetching users." });
   }
 });
-// ✅ Cập nhật trạng thái user
-// ✅ Cập nhật trạng thái user + đồng bộ provider/tour
+//  Cập nhật trạng thái user
+//  Cập nhật trạng thái user + đồng bộ provider/tour
 router.put("/users/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body; // 'active', 'inactive', 'suspended'
 
-    // 🔹 Cập nhật user trước
+    //  Cập nhật user trước
     await pool.query("UPDATE users SET status = ? WHERE user_id = ?", [status, id]);
 
     if (status !== "active") {
-      // 🔴 Khi khóa user: khóa luôn provider & tour
+      //  Khi khóa user: khóa luôn provider & tour
       await pool.query(
         "UPDATE tour_providers SET status = 'suspended' WHERE user_id = ?",
         [id]
@@ -104,7 +108,7 @@ router.put("/users/:id/status", async (req, res) => {
         [id]
       );
     } else {
-      // 🟢 Khi mở lại user: mở luôn provider & tour nếu có
+      //  Khi mở lại user: mở luôn provider & tour nếu có
       await pool.query(
         `UPDATE tour_providers 
          SET status = 'active' 
@@ -122,7 +126,7 @@ router.put("/users/:id/status", async (req, res) => {
         [id]
       );
     }
-
+    notifyUserStatusChange(id, status);
     res.json({ success: true, message: `User and related data updated to ${status}` });
   } catch (error) {
     console.error("❌ Error updating user status:", error);
@@ -131,7 +135,7 @@ router.put("/users/:id/status", async (req, res) => {
 });
 
 
-// ✅ Lấy danh sách tất cả tour và tổng doanh thu hệ thống
+//  Lấy danh sách tất cả tour và tổng doanh thu hệ thống
 router.get("/tours", async (req, res) => {
   try {
     const [tours] = await pool.query(`
@@ -158,7 +162,7 @@ router.get("/tours", async (req, res) => {
 });
 
 /// Quang them chuc nang lien quan den payment
-// ✅ QUẢN LÝ THANH TOÁN (ADMIN DASHBOARD)
+//  QUẢN LÝ THANH TOÁN (ADMIN DASHBOARD)
 router.get("/payments", async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -184,7 +188,7 @@ router.get("/payments", async (req, res) => {
       ORDER BY p.created_at DESC
     `);
 
-    // ✅ Thêm BASE_URL để tạo đường dẫn ảnh đầy đủ
+    //  Thêm BASE_URL để tạo đường dẫn ảnh đầy đủ
     const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
     const payments = rows.map((p) => ({
       ...p,
@@ -202,7 +206,7 @@ router.get("/payments", async (req, res) => {
 
 
 
-// ✅ CẬP NHẬT TRẠNG THÁI THANH TOÁN (Admin xác minh thủ công)
+//  CẬP NHẬT TRẠNG THÁI THANH TOÁN (Admin xác minh thủ công)
 router.put("/payments/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
@@ -229,7 +233,7 @@ router.put("/payments/:id/status", async (req, res) => {
 });
 
 
-// ✅ LẤY CHI TIẾT MỘT THANH TOÁN (có ảnh, user, tour)
+//  LẤY CHI TIẾT MỘT THANH TOÁN (có ảnh, user, tour)
 router.get("/payments/:id", async (req, res) => {
   try {
     const { id } = req.params;

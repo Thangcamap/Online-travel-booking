@@ -2,14 +2,20 @@ require("dotenv").config({ path: __dirname + "/.env.development" });
 console.log("🌍 GEOAPIFY_API_KEY =", process.env.GEOAPIFY_API_KEY);
 const express = require("express");
 const cors = require("cors");
-const path = require("path");;
+const http = require("http");
+const path = require("path");
 const { pool } = require("./config/mysql");
+const { initSocket } = require("./socket");
 
 const app = express();
+const server = http.createServer(app);
+
+// ✅ Khởi tạo socket
+initSocket(server);
 
 // ✅ Middleware CORS + JSON
 app.use(cors({
-origin: true,  // ✅ cho phép mọi localhost
+  origin: "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -65,8 +71,16 @@ app.get("/", async (req, res) => {
 
 
 // ✅ Start server
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => {
+//   console.log(`✅ Server running on http://localhost:${PORT}`);
+//   console.log("🖼️ Static files served from:", path.join(__dirname, "uploads"));
+// });
+
+
+// ✅ Start server đúng chuẩn (Express + Socket.IO)
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`✅ Server + Socket.IO running on http://localhost:${PORT}`);
   console.log("🖼️ Static files served from:", path.join(__dirname, "uploads"));
 });

@@ -32,6 +32,9 @@ import { createProvider, uploadProviderImage, getProviderByUser } from "../api/c
 import SearchLocation from "../../Location/components/SearchLocation";
 import { createAddress } from "../../Location/api/address-api";
 import useAuthUserStore from "@/stores/useAuthUserStore";
+import { socket } from "@/lib/socket";
+import { toast } from "sonner";
+
 
 // ✅ Validation schema
 const formSchema = z.object({
@@ -57,25 +60,16 @@ export default function TourProviderForm() {
   });
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [addressLine2, setAddressLine2] = useState("");
+    const [contentState, setContentState] = useState("loading");
+  
+
+  
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { authUser } = useAuthUserStore();
 
-  // ⚠️ Nếu user bị khóa thì chặn luôn form
-  if (authUser?.status && authUser.status !== "active") {
-    return (
-      <div className="flex flex-col items-center justify-center h-80 text-center text-gray-700">
-        <span className="text-6xl mb-4">🚫</span>
-        <p className="text-lg font-semibold">
-          Tài khoản của bạn đã bị khóa hoặc tạm ngưng.
-        </p>
-        <p className="text-sm text-gray-500">
-          Bạn không thể đăng ký làm nhà cung cấp trong lúc này.
-        </p>
-      </div>
-    );
-  }
+
 
   // ✅ Lấy trạng thái provider của user hiện tại
   const { data: providerData, isLoading: checkingProvider } = useQuery({
@@ -83,14 +77,61 @@ export default function TourProviderForm() {
     queryFn: () => getProviderByUser(authUser.user_id),
     enabled: !!authUser?.user_id,
   });
+    // ✅ Socket lắng nghe trạng thái user realtime
+  useEffect(() => {
+    if (!authUser?.user_id) return;
+
+    socket.connect();
+    socket.emit("join_user", authUser.user_id);
+    console.log("✅ Joined socket room user_" + authUser.user_id);
+
+socket.on("account_status_changed", (newStatus) => {
+  toast.error(`Tài khoản của bạn đã bị ${newStatus}`);
+  useAuthUserStore.getState().setAuthUser({
+    ...authUser,
+    status: newStatus,
+  });
+  localStorage.setItem("authUser", JSON.stringify({
+    ...authUser,
+    status: newStatus,
+  }));
+  if (newStatus !== "active") {
+    setContentState("user_blocked");
+  } else {
+    setContentState("form");
+  }
+});
+    
+
+    return () => {
+      socket.off("account_status_changed");
+      socket.disconnect();
+    };
+  }, [authUser?.user_id]);
 
   // ✅ Xác định trạng thái hiển thị
-  let contentState = "form"; // default
-  if (checkingProvider) contentState = "loading";
-  else if (providerData?.exists && providerData?.provider?.approval_status === "pending")
-    contentState = "pending";
-  else if (providerData?.exists && providerData?.provider?.approval_status === "approved")
-    contentState = "approved";
+useEffect(() => {
+    if (checkingProvider) {
+      setContentState("loading");
+    } else if (authUser?.status && authUser.status !== "active") {
+      setContentState("user_blocked");
+    } else if (
+      providerData?.exists &&
+      providerData?.provider?.approval_status === "pending"
+    )
+      setContentState("pending");
+    else if (
+      providerData?.exists &&
+      providerData?.provider?.status === "suspended"
+    )
+      setContentState("suspended");
+    else if (
+      providerData?.exists &&
+      providerData?.provider?.approval_status === "approved"
+    )
+      setContentState("approved");
+    else setContentState("form");
+  }, [checkingProvider, providerData, authUser?.status]);
 
   // ✅ React Hook Form setup
   const form = useForm({
@@ -226,6 +267,30 @@ export default function TourProviderForm() {
           ✅ Bạn đã là nhà cung cấp. Không cần đăng ký thêm.
         </div>
       )}
+      {contentState === "suspended" && (
+  <div className="flex flex-col items-center justify-center h-80 space-y-4 text-center text-red-600">
+    <span className="text-5xl">🚫</span>
+    <p className="text-lg font-semibold">
+      Tài khoản nhà cung cấp của bạn đã bị khóa.
+    </p>
+    <p className="text-sm text-gray-500">
+      Vui lòng liên hệ quản trị viên để được hỗ trợ khôi phục.
+    </p>
+  </div>
+)}
+{contentState === "user_blocked" && (
+  <div className="flex flex-col items-center justify-center h-80 space-y-4 text-center text-red-600">
+    <span className="text-5xl">🚫</span>
+    <p className="text-lg font-semibold">
+      Tài khoản người dùng của bạn đã bị khóa hoặc vô hiệu hóa.
+    </p>
+    <p className="text-sm text-gray-500">
+      Vui lòng liên hệ quản trị viên để được hỗ trợ khôi phục quyền truy cập.
+    </p>
+  </div>
+)}
+
+
 
       {contentState === "form" && (
         <>

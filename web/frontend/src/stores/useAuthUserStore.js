@@ -5,11 +5,16 @@ const useAuthUserStore = create((set) => {
   const storedUser = localStorage.getItem("user");
   return {
     authUser: storedUser ? JSON.parse(storedUser) : null,
-    setAuthUser: (user) => set({ authUser: user }),
+    setAuthUser: (user) => {
+  if (user) localStorage.setItem("user", JSON.stringify(user));
+  set({ authUser: user });
+},
+
     logout: () => {
       localStorage.removeItem("user");
       localStorage.removeItem("token"); // ❗ xóa token luôn
       set({ authUser: null });
+      
     },
   };
 });

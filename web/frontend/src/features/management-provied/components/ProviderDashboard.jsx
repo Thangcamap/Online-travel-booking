@@ -9,6 +9,8 @@ import { getTours, getProviderByUser } from "../api/tours-api";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import ProviderInfo from "../components/ProviderInfo";
+import { socket } from "@/lib/socket";
+import { toast } from "sonner";
 
 export default function ProviderDashboard() {
   const [provider, setProvider] = useState(null);
@@ -16,7 +18,6 @@ export default function ProviderDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("info");
 
-  // 🟡 thêm state lưu lý do bị chặn
   const [accessError, setAccessError] = useState("");
 
   const [stats, setStats] = useState({
@@ -96,7 +97,38 @@ export default function ProviderDashboard() {
 
     init();
   }, []);
+    // Thiết lập socket realtime (khi provider đã có dữ liệu)
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user?.user_id) return;
 
+    //  Kết nối socket
+    socket.connect();
+    socket.emit("join_user", user.user_id);
+    console.log("✅ Joined socket room user_" + user.user_id);
+
+    socket.on("account_status_changed", (newStatus) => {
+      toast.error(`Tài khoản của bạn đã bị ${newStatus}`);
+      setAccessError("user_blocked");
+      localStorage.clear();
+      setTimeout(() => (window.location.href = "/login"), 2000);
+    });
+
+    socket.on("provider_status_changed", (newStatus) => {
+      toast.warning(`Trạng thái nhà cung cấp: ${newStatus}`);
+      if (newStatus !== "active") {
+        setAccessError("provider_blocked");
+        setProvider(null);
+      }
+    });
+
+    //  cleanup khi rời trang
+    return () => {
+      socket.off("account_status_changed");
+      socket.off("provider_status_changed");
+      socket.disconnect();
+    };
+  }, []);
   if (loading)
     return (
       <div className="flex justify-center items-center h-screen text-orange-600 font-medium">
@@ -104,7 +136,7 @@ export default function ProviderDashboard() {
       </div>
     );
 
-  // 🟢 sửa: hiển thị thông báo khác nhau theo lý do bị chặn
+  //  sửa: hiển thị thông báo khác nhau theo lý do bị chặn
   if (!provider)
     return (
       <div className="flex flex-col items-center justify-center h-screen text-center">
@@ -153,6 +185,7 @@ export default function ProviderDashboard() {
 
   const handleLogout = () => {
     localStorage.clear();
+    socket.disconnect();
     window.location.href = "/login";
   };
 
