@@ -57,7 +57,7 @@ CREATE TABLE admins (
 -- Bảng tour
 CREATE TABLE tours (
   tour_id VARCHAR(32) PRIMARY KEY,
-  provider_id VARCHAR(16) NOT NULL,
+  provider_id VARCHAR(64) NOT NULL,
   name VARCHAR(100) NOT NULL,
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
