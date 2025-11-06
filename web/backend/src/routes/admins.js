@@ -126,7 +126,17 @@ router.put("/users/:id/status", async (req, res) => {
         [id]
       );
     }
-    notifyUserStatusChange(id, status);
+   // 🔁 Lấy danh sách tất cả provider thuộc user đó
+const [providers] = await pool.query(
+  "SELECT provider_id FROM tour_providers WHERE user_id = ?",
+  [id]
+);
+
+// 🟢 Gửi socket update cho từng provider_id
+for (const provider of providers) {
+  notifyProviderStatusChange(provider.provider_id, status);
+}
+
     res.json({ success: true, message: `User and related data updated to ${status}` });
   } catch (error) {
     console.error("❌ Error updating user status:", error);
