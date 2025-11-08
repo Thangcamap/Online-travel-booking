@@ -26,6 +26,7 @@ const Home = () => {
   // }, [authUser, navigate]);
 
   // Lấy danh sách tour
+  
   useEffect(() => {
     const fetchTours = async () => {
       try {
@@ -38,46 +39,27 @@ const Home = () => {
     fetchTours();
   }, []);
 
+  
+
 // 🔹 Socket realtime: lắng nghe khi admin khóa/mở provider
-  useEffect(() => {
-  socket.connect();
-
-  if (authUser?.user_id) {
-    socket.emit("join_user", authUser.user_id);
-    console.log("✅ Joined socket room user_" + authUser.user_id);
-  }
-
-  // Lắng nghe sự kiện thay đổi trạng thái provider
+useEffect(() => {
   socket.on("provider_status_changed", (data) => {
     console.log("📢 Provider status changed:", data);
 
-    // Khi provider bị khóa -> ẩn ngay các tour của họ
     if (data.newStatus === "suspended") {
-      console.log("All tour provider_ids:", prevTours.map(t => t.provider_id));
-      console.log("Hidden target:", data.provider_id);
-      setTours((prevTours) => {
-        const updated = prevTours.filter(
-          (tour) => tour.provider_id !== data.provider_id
-        );
-        console.log("🚫 Hidden tours from provider:", data.provider_id);
-        return updated;
-      });
+      setTours((prevTours) => prevTours.filter((t) => t.provider_id !== data.provider_id));
     }
 
-    // Khi provider được mở khóa -> gọi API cập nhật lại
     if (data.newStatus === "active") {
-      console.log("✅ Provider re-activated, reloading tours...");
-      api.get("/home/tours").then((res) => {
-        setTours(res.data || []);
-      });
+      api.get("/home/tours").then((res) => setTours(res.data || []));
     }
   });
 
-  // cleanup
   return () => {
     socket.off("provider_status_changed");
   };
-}, [authUser?.user_id]);
+}, []);
+
 
   // Đăng xuất
   // const handleLogout = () => {
@@ -85,10 +67,10 @@ const Home = () => {
   //   navigate("/home");
   // };
 const handleLogout = () => {
-  localStorage.removeItem("user"); // ❌ Xóa user khỏi localStorage
-  setAuthUser(null);               // ❌ Xóa user khỏi Zustand
-  navigate("/home");               // 🔁 Quay lại trang home
-  window.location.reload();        // ✅ Reload để các component (AIChat) cập nhật ngay
+  localStorage.removeItem("user"); 
+  setAuthUser(null);               
+  navigate("/home");               
+  window.location.reload();        
 };
 
 

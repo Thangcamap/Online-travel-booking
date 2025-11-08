@@ -136,6 +136,7 @@ const [providers] = await pool.query(
 for (const provider of providers) {
   notifyProviderStatusChange(provider.provider_id, status);
 }
+notifyUserStatusChange(id, status);
 
     res.json({ success: true, message: `User and related data updated to ${status}` });
   } catch (error) {

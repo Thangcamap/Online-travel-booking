@@ -114,13 +114,36 @@ export default function ProviderDashboard() {
       setTimeout(() => (window.location.href = "/login"), 2000);
     });
 
-    socket.on("provider_status_changed", (newStatus) => {
-      toast.warning(`Trạng thái nhà cung cấp: ${newStatus}`);
-      if (newStatus !== "active") {
-        setAccessError("provider_blocked");
-        setProvider(null);
+socket.on("provider_status_changed", async (data) => {
+  const { provider_id, newStatus } = data;
+  
+  // Kiểm tra provider hiện tại có trùng không
+  if (provider?.provider_id !== provider_id) return;
+
+  toast.warning(`Trạng thái nhà cung cấp: ${newStatus}`);
+
+  if (newStatus !== "active") {
+    // 🔒 Nếu bị khóa hoặc chưa duyệt
+    setAccessError("provider_blocked");
+    setProvider(null);
+  } else {
+    // ✅ Nếu được mở lại → tải lại provider và tours
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const providerRes = await getProviderByUser(user.user_id);
+
+      if (providerRes.exists && providerRes.provider.status === "active") {
+        setProvider(providerRes.provider);
+        await fetchTours(providerRes.provider.provider_id);
+        setAccessError("");
+        toast.success("✅ Tài khoản nhà cung cấp đã được mở khóa!");
       }
-    });
+    } catch (err) {
+      console.error("❌ Lỗi khi cập nhật trạng thái provider:", err);
+    }
+  }
+});
+
 
     //  cleanup khi rời trang
     return () => {

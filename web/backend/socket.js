@@ -42,10 +42,19 @@ function notifyUserStatusChange(userId, newStatus) {
 // }
 function notifyProviderStatusChange(providerId, newStatus) {
   if (io) {
-    io.emit("provider_status_changed", {
-      provider_id: providerId,newStatus,
+    io.to(`provider_${providerId}`).emit("provider_status_changed", {
+      provider_id: providerId,
+      newStatus,
     });
-    // console.log(`📢 Sent update to ${providerId}: ${newStatus}`);
+
+        // 🟡 Gửi broadcast cho các client khác (admin dashboard, user list, v.v.)
+    io.emit("provider_status_broadcast", {
+      provider_id: providerId,
+      newStatus,
+    });
+    console.log(`📢 Sent update to provider_${providerId}: ${newStatus}`);
   }
 }
+
+
 module.exports = { initSocket, notifyUserStatusChange, notifyProviderStatusChange };
