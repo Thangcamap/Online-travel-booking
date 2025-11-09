@@ -10,11 +10,11 @@ function initSocket(server) {
   });
 
   io.on("connection", (socket) => {
-    // console.log("🔌 Client connected:", socket.id);
+    // console.log(" Client connected:", socket.id);
 
     socket.on("join_user", (userId) => {
       socket.join(`user_${userId}`);
-      console.log(`✅ User ${userId} joined room user_${userId}`);
+      console.log(` User ${userId} joined room user_${userId}`);
     });
         // 🟢 THÊM ĐOẠN NÀY
   socket.on("join_provider", (providerId) => {
@@ -22,7 +22,7 @@ function initSocket(server) {
     // console.log(`✅ Provider ${providerId} joined room provider_${providerId}`);
   });
     socket.on("disconnect", () => {
-      // console.log("❌ Client disconnected:", socket.id);
+      // console.log(" Client disconnected:", socket.id);
     });
   });
 }
@@ -30,14 +30,14 @@ function initSocket(server) {
 function notifyUserStatusChange(userId, newStatus) {
   if (io) {
     io.to(`user_${userId}`).emit("account_status_changed", newStatus);
-    // console.log(`📢 Sent update to user_${userId}: ${newStatus}`);
+    // console.log(` Sent update to user_${userId}: ${newStatus}`);
   }
 }
 
 // function notifyProviderStatusChange(providerUserId, newStatus) {
 //   if (io) {
 //     io.to(`user_${providerUserId}`).emit("provider_status_changed", newStatus);
-//     console.log(`📢 Sent update to provider_${providerUserId}: ${newStatus}`);
+//     console.log(` Sent update to provider_${providerUserId}: ${newStatus}`);
 //   }
 // }
 function notifyProviderStatusChange(providerId, newStatus) {
@@ -52,7 +52,7 @@ function notifyProviderStatusChange(providerId, newStatus) {
       provider_id: providerId,
       newStatus,
     });
-    console.log(`📢 Sent update to provider_${providerId}: ${newStatus}`);
+    console.log(` Sent update to provider_${providerId}: ${newStatus}`);
   }
 }
 

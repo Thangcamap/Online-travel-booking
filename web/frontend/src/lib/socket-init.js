@@ -3,14 +3,13 @@ import { toast } from "sonner";
 import useAuthUserStore from "@/stores/useAuthUserStore";
 import { api } from "@/lib/api-client";
 
-let joinedUserId = null; // <— thay thế biến initialized
-
+let joinedUserId = null; 
 export const initUserSocket = () => {
   const { authUser, setAuthUser } = useAuthUserStore.getState();
 
   if (!authUser?.user_id) return;
 
-  // ⚠️ Nếu đã join cùng user_id rồi thì bỏ qua
+  //  Nếu đã join cùng user_id rồi thì bỏ qua
   if (joinedUserId === authUser.user_id && socket.connected) {
     console.log("⚠️ Socket already joined for user:", authUser.user_id);
     return;
@@ -46,7 +45,7 @@ export const initUserSocket = () => {
   // --- Lắng nghe sự kiện provider ---
   socket.removeAllListeners("provider_status_changed");
   socket.on("provider_status_changed", async (data) => {
-    console.log("📢 Provider status changed:", data);
+    console.log(" Provider status changed:", data);
     if (data.newStatus === "suspended") {
       toast.error("Nhà cung cấp đã bị khóa, các tour sẽ bị ẩn!");
     } else if (data.newStatus === "active") {
@@ -55,7 +54,7 @@ export const initUserSocket = () => {
         await api.get("/home/tours");
         window.dispatchEvent(new Event("provider_reactivated"));
       } catch (err) {
-        console.error("❌ Lỗi reload tours:", err);
+        console.error(" Lỗi reload tours:", err);
       }
     }
   });

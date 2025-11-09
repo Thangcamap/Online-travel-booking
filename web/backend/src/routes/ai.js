@@ -166,7 +166,7 @@ Trả về JSON ví dụ:
       return { ...t, itineraries: itineraryMap[t.tour_id] || [], score };
     });
 
-    // 8️⃣ Sắp xếp theo preference
+    // 8️⃣ Chỉ lấy các tour thực sự phù hợp (score > 0 và có chứa từ khóa)
     let finalSorted;
     if (pricePref === "cheap") {
       finalSorted = scoredTours.sort((a, b) => {
@@ -184,7 +184,12 @@ Trả về JSON ví dụ:
       finalSorted = scoredTours.sort((a, b) => b.score - a.score);
     }
 
-    const matchedTours = finalSorted.slice(0, 5);
+    // Chỉ lấy tour có score > 0 và chứa ít nhất một từ khóa
+    const matchedTours = finalSorted.filter(t => {
+      if (t.score <= 0) return false;
+      const text = `${t.name} ${t.description} ${(t.itineraries||[]).map(it=>it.title+it.description).join(' ')}`.toLowerCase();
+      return keywords.some(kw => text.includes(kw.toLowerCase()));
+    });
 
     // 9️⃣ Lấy lịch sử hội thoại gần nhất
     const [history] = await pool.query(
@@ -196,14 +201,18 @@ Trả về JSON ví dụ:
       .map((m) => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.message}`)
       .join("\n");
 
-    // 🔟 Gọi OpenAI tạo phản hồi tự nhiên
+    // 🔟 Gọi OpenAI tạo phản hồi tự nhiên, bổ sung lịch sử hội thoại và hướng dẫn AI hỏi lại nếu chưa đủ thông tin
     const prompt = `
-Bạn là trợ lý du lịch thông minh. Hãy trả lời thân thiện và gợi ý tour phù hợp.
+Bạn là trợ lý du lịch thông minh, thân thiện, chuyên tư vấn tour du lịch cá nhân hóa cho người Việt Nam.
 
-Người dùng: "${message}"
-Từ khóa: ${keywords.join(", ")}
-Ưu tiên giá: ${typeof pricePref === "string" ? pricePref : pricePref ? JSON.stringify(pricePref) : "Không rõ"}
-Ngày đi: ${searchDate || "Không xác định"}
+Lịch sử hội thoại gần nhất:
+${historyText}
+
+Thông tin người dùng:
+- Yêu cầu: "${message}"
+- Từ khóa: ${keywords.join(", ")}
+- Ưu tiên giá: ${typeof pricePref === "string" ? pricePref : pricePref ? JSON.stringify(pricePref) : "Không rõ"}
+- Ngày đi: ${searchDate || "Không xác định"}
 
 Danh sách tour phù hợp:
 ${matchedTours
@@ -217,14 +226,33 @@ ${i + 1}. ${t.name} (${t.provider || "Không rõ"})
 `
   )
   .join("\n")}
+
+Yêu cầu:
+1. Gợi ý tour phù hợp nhất với nhu cầu người dùng, giải thích ngắn gọn lý do chọn tour.
+2. Nếu chưa đủ thông tin để tư vấn chính xác, hãy hỏi lại người dùng về sở thích, địa điểm, thời gian, ngân sách, hoặc các yêu cầu đặc biệt.
+3. Luôn trả lời thân thiện, dễ hiểu, có call-to-action (ví dụ: "Bạn muốn xem chi tiết tour nào?" hoặc "Bạn có muốn tư vấn thêm không?").
+4. Nếu danh sách tour trống, hãy đề xuất các loại tour phổ biến hoặc hỏi lại người dùng.
+Trả lời bằng tiếng Việt.
 `;
 
-    const completion = await openai.responses.create({
-      model: "gpt-4.1-mini",
-      input: prompt,
-    });
-
-    const aiReply = completion.output[0].content[0].text;
+    // Ưu tiên model mới hơn nếu có (gpt-4o), fallback về gpt-4.1-mini nếu không hỗ trợ
+    let modelName = "gpt-4o";
+    try {
+      const completion = await openai.responses.create({
+        model: modelName,
+        input: prompt,
+        temperature: 0.8,
+      });
+      var aiReply = completion.output[0].content[0].text;
+    } catch (err) {
+      // Nếu model mới lỗi, dùng lại model cũ
+      const completion = await openai.responses.create({
+        model: "gpt-4.1-mini",
+        input: prompt,
+        temperature: 0.8,
+      });
+      var aiReply = completion.output[0].content[0].text;
+    }
 
     // 🔟 Lưu phản hồi AI
     await pool.query(
