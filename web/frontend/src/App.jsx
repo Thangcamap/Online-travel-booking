@@ -4,7 +4,6 @@ import { AuthProvider } from "./contexts/AuthContext";
 import CreateProvided from "./features/management-provied/components/create-provied.jsx";
 import AdminDashboard from "./features/management-admin/components/AdminDashboard.jsx";
 import ProviderDashboard from "@/features/management-provied/components/ProviderDashboard";
-import TourManager from "./features/management-provied/components/TourManager.jsx";
 import Login from "./features/management-login/components/login.jsx";
 import Register from "./features/management-login/components/register.jsx";
 import Home from "./features/management-home/components/home.jsx";
@@ -13,7 +12,6 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import useAuthUserStore from "@/stores/useAuthUserStore"; 
 import PaymentPage from "./features/payments/components/PaymentPage.jsx"; 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { io } from "socket.io-client"; 
 import "./App.css";
 import { initUserSocket } from "@/lib/socket-init"; 
 
@@ -23,17 +21,17 @@ function App() {
   const { authUser, setAuthUser } = useAuthUserStore();
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setAuthUser(JSON.parse(savedUser));
-    }
-  }, [setAuthUser]);
+  const savedUser = localStorage.getItem("user");
+  if (savedUser) setAuthUser(JSON.parse(savedUser));
+}, [setAuthUser]);
 
-  useEffect(() => {
-    if (authUser?.user_id) {
-      initUserSocket(); // ✅ chạy socket 1 lần khi có user
-    }
-  }, [authUser?.user_id]);
+useEffect(() => {
+  const user = useAuthUserStore.getState().authUser;
+  if (user?.user_id) {
+    initUserSocket();
+  }
+}, [useAuthUserStore.getState().authUser]); 
+
 
   return (
     <QueryClientProvider client={queryClient}>

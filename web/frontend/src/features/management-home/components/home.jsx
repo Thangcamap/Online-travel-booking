@@ -39,8 +39,6 @@ const Home = () => {
     fetchTours();
   }, []);
 
-  
-
 // 🔹 Socket realtime: lắng nghe khi admin khóa/mở provider
 useEffect(() => {
   socket.on("provider_status_changed", (data) => {

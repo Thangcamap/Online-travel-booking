@@ -103,9 +103,17 @@ export default function ProviderDashboard() {
     if (!user?.user_id) return;
 
     //  Kết nối socket
-    socket.connect();
-    socket.emit("join_user", user.user_id);
-    console.log("✅ Joined socket room user_" + user.user_id);
+if (!socket.connected) socket.connect();
+
+// chỉ join nếu chưa join trước đó
+if (!socket._joinedUserId || socket._joinedUserId !== user.user_id) {
+  socket.emit("join_user", user.user_id);
+  socket._joinedUserId = user.user_id;
+  console.log("✅ Joined socket room user_" + user.user_id);
+} else {
+  console.log("⚠️ Socket already joined for user_" + user.user_id);
+}
+
 
     socket.on("account_status_changed", (newStatus) => {
       toast.error(`Tài khoản của bạn đã bị ${newStatus}`);
@@ -149,7 +157,7 @@ socket.on("provider_status_changed", async (data) => {
     return () => {
       socket.off("account_status_changed");
       socket.off("provider_status_changed");
-      socket.disconnect();
+      //socket.disconnect();
     };
   }, []);
   if (loading)
