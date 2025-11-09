@@ -25,6 +25,39 @@ const Home = () => {
   //   if (!authUser) navigate("/login");
   // }, [authUser, navigate]);
 
+  // Khởi tạo socket cho mọi user để lắng nghe trạng thái tài khoản
+  useEffect(() => {
+    if (!authUser?.user_id) return;
+    if (!socket.connected) socket.connect();
+    socket.emit("join_user", authUser.user_id);
+
+    // Lắng nghe sự kiện tài khoản bị khóa
+    socket.on("account_status_changed", (newStatus) => {
+      const updatedUser = { ...authUser, status: newStatus };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setAuthUser(updatedUser);
+      if (newStatus !== "active") {
+        // Chặn truy cập các trang provider, quản lý tour, đăng ký provider
+        const currentPath = window.location.pathname;
+        if (
+          currentPath.includes("/provider-dashboard") ||
+          currentPath.includes("/register-provider") ||
+          currentPath.includes("/create-provider")
+        ) {
+          localStorage.clear();
+          setTimeout(() => (window.location.href = "/login"), 2000);
+        } else {
+          // Nếu đang ở home, hiển thị cảnh báo
+          alert("Tài khoản của bạn đã bị khóa. Một số tính năng sẽ bị hạn chế!");
+        }
+      }
+    });
+
+    return () => {
+      socket.off("account_status_changed");
+    };
+  }, [authUser, setAuthUser]);
+
   // Lấy danh sách tour
   
   useEffect(() => {
