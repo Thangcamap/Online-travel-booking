@@ -17,6 +17,7 @@ export default function AddTourForm({ providerId, onAdded }) {
     end_date: "",
   });
   const [files, setFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [days, setDays] = useState(0);
   const [itinerary, setItinerary] = useState([]);
@@ -48,7 +49,18 @@ export default function AddTourForm({ providerId, onAdded }) {
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleFileChange = (e) => {
-    setFiles(Array.from(e.target.files));
+    const newFiles = Array.from(e.target.files);
+    // Cộng dồn file mới vào file cũ, không trùng lặp
+    const allFiles = [...files, ...newFiles.filter(f => !files.some(old => old.name === f.name && old.size === f.size))];
+    setFiles(allFiles);
+    setPreviews(allFiles.map(file => URL.createObjectURL(file)));
+  };
+
+  // Xóa ảnh theo index
+  const handleRemoveImage = (idx) => {
+    const newFiles = files.filter((_, i) => i !== idx);
+    setFiles(newFiles);
+    setPreviews(newFiles.map(file => URL.createObjectURL(file)));
   };
 
   const handleItineraryChange = (index, field, value) => {
@@ -97,6 +109,7 @@ await axios.post(`/tours/${newTour.tour_id}/itinerary`, { itinerary });
         end_date: "",
       });
       setFiles([]);
+      setPreviews([]);
       setItinerary([]);
       setDays(0);
     } catch (err) {
@@ -211,6 +224,28 @@ await axios.post(`/tours/${newTour.tour_id}/itinerary`, { itinerary });
       <div className="grid gap-2 mt-3">
         <Label>Ảnh tour</Label>
         <Input type="file" accept="image/*" multiple onChange={handleFileChange} />
+        {/* Hiển thị preview ảnh đã chọn */}
+        {previews.length > 0 && (
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {previews.map((src, idx) => (
+              <div key={idx} className="relative inline-block">
+                <img
+                  src={src}
+                  alt={`preview-${idx}`}
+                  className="w-24 h-24 object-cover rounded-lg border shadow"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(idx)}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow hover:bg-red-600"
+                  title="Xóa ảnh"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <Button type="submit" className="w-full mt-4" disabled={loading}>

@@ -41,6 +41,31 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // Kiểm tra trùng tên công ty
+    const [checkName] = await pool.query(
+      "SELECT 1 FROM tour_providers WHERE company_name = ?",
+      [company_name]
+    );
+    if (checkName.length > 0)
+      return res.status(400).json({ field: "companyName", message: "Tên công ty đã được sử dụng ." });
+
+    // Kiểm tra trùng email
+    const [checkEmail] = await pool.query(
+      "SELECT 1 FROM tour_providers WHERE email = ?",
+      [email]
+    );
+    if (checkEmail.length > 0)
+      return res.status(400).json({ field: "email", message: "Email này đã được sử dụng." });
+
+    // Kiểm tra trùng số điện thoại
+    const [checkPhone] = await pool.query(
+      "SELECT 1 FROM tour_providers WHERE phone_number = ?",
+      [phone_number]
+    );
+    if (checkPhone.length > 0)
+      return res.status(400).json({ field: "phoneNumber", message: "Số điện thoại đã được sử dụng." });
+
+
     // const provider_id = `prov_${Date.now()}`;
     const provider_id = "prov_" + uuidv4();
     await pool.query(

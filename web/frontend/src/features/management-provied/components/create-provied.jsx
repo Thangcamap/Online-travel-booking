@@ -154,24 +154,33 @@ useEffect(() => {
   }, [images.logo.preview, images.cover.preview]);
 
   // ✅ Mutation: Tạo provider
-  const { mutate, isLoading } = useMutation({
-    mutationFn: createProvider,
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["providers"] });
-      const newProviderId = res.data?.provider_id;
-      if (newProviderId && (images.logo.file || images.cover.file)) {
-        uploadImageMutation.mutate({
-          providerId: newProviderId,
-          images: { logo: images.logo.file, cover: images.cover.file },
-        });
-      } else {
-        setOpen(true);
-      }
-    },
-    onError: () => {
-      setMessageFile("Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại.");
-    },
-  });
+const { mutate, isLoading } = useMutation({
+  mutationFn: createProvider,
+  onSuccess: (res) => {
+    queryClient.invalidateQueries({ queryKey: ["providers"] });
+    const newProviderId = res.data?.provider_id;
+    if (newProviderId && (images.logo.file || images.cover.file)) {
+      uploadImageMutation.mutate({
+        providerId: newProviderId,
+        images: { logo: images.logo.file, cover: images.cover.file },
+      });
+    } else {
+      setOpen(true);
+    }
+  },
+  onError: (error) => {
+    // ✅ Kiểm tra lỗi trả về từ backend
+    const msg = error.response?.data?.message || "Lỗi không xác định";
+    const field = error.response?.data?.field;
+
+    if (field && form.setError) {
+      form.setError(field, { message: msg });
+    } else {
+      setMessageFile(msg);
+    }
+  },
+});
+
 
   // ✅ Mutation: Upload ảnh
   const uploadImageMutation = useMutation({
@@ -254,7 +263,7 @@ useEffect(() => {
         <div className="flex flex-col items-center justify-center h-80 space-y-4 text-center">
           <span className="text-5xl">⏳</span>
           <p className="text-lg font-semibold text-gray-800">
-            Yêu cầu của bạn đang được Admin phê duyệt
+            Yêu cầu của bạn đang chờ Admin phê duyệt
           </p>
           <p className="text-sm text-gray-500">
             Vui lòng quay lại sau khi yêu cầu được chấp thuận.
@@ -264,7 +273,7 @@ useEffect(() => {
 
       {contentState === "approved" && (
         <div className="text-center py-20 text-green-600 font-medium text-lg">
-          ✅ Bạn đã là nhà cung cấp. Không cần đăng ký thêm.
+          ✅ Bạn đã là nhà cung cấp tour . Không cần đăng ký thêm.
         </div>
       )}
       {contentState === "suspended" && (
