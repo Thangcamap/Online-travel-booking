@@ -46,7 +46,11 @@ router.get("/", async (req, res) => {
         p.status,
         p.payment_image,
         p.created_at,
-        p.updated_at
+        p.updated_at,
+        COALESCE(
+          (SELECT image_url FROM images WHERE entity_type='tour' AND entity_id=t.tour_id LIMIT 1),
+          '/uploads/default-tour.jpg'
+        ) AS image_url
       FROM payments p
       JOIN bookings b ON p.booking_id = b.booking_id
       JOIN users u ON b.user_id = u.user_id
