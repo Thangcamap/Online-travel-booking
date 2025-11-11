@@ -51,6 +51,9 @@ app.use("/api/register", registerRoute);
 const homeRoutes = require("./src/routes/home");
 app.use("/api/home", homeRoutes);
 
+const aboutRoutes = require("./src/routes/about");
+app.use("/api/about", aboutRoutes);
+
 const aiRoutes = require("./src/routes/ai");
 app.use("/api/ai", aiRoutes);
 

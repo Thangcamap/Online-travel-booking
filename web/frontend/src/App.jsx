@@ -14,6 +14,7 @@ import PaymentPage from "./features/payments/components/PaymentPage.jsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
 import { initUserSocket } from "@/lib/socket-init"; 
+import AboutPage from "./features/about/components/AboutPage";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ useEffect(() => {
                <Route path="/home"element={<Home />}/>
                <Route path="/payments" element={<PaymentPage />} />  
               <Route path="/home" element={<Home />} />
+              <Route path="/about" element={<AboutPage />} />
             </Routes>
           </div>
         </Router>
