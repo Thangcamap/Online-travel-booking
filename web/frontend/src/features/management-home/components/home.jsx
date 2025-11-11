@@ -63,7 +63,9 @@ const Home = () => {
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const res = await api.get("/home/tours");
+        //const res = await api.get("/home/tours");
+        const res = await api.get("/tours");
+
         setTours(res.data || []);
       } catch (err) {
         console.error("Error fetching tours:", err);
@@ -82,7 +84,9 @@ useEffect(() => {
     }
 
     if (data.newStatus === "active") {
-      api.get("/home/tours").then((res) => setTours(res.data || []));
+      //api.get("/home/tours").then((res) => setTours(res.data || []));
+      api.get("/tours").then((res) => setTours(res.data || []));
+
     }
   });
 
@@ -293,7 +297,8 @@ const handleLogout = () => {
         {tours.slice(0, 5).map((tour) => (
           <div
             key={tour.tour_id}
-            onClick={() => navigate("/login")}
+            //onClick={() => navigate("/login")}
+            onClick={() => navigate(`/tours/${tour.tour_id}`)}
             className="min-w-[320px] bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-2xl hover:-translate-y-1 transition-transform duration-300"
           >
             <img
@@ -368,7 +373,7 @@ const handleLogout = () => {
                         {tour.currency || "VND"}
                       </span>
                       <Link
-                        to={`/tour/${tour.tour_id}`}
+                        to={`/tours/${tour.tour_id}`}
                         className="bg-orange-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-orange-600"
                       >
                         View

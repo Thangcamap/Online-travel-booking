@@ -407,6 +407,105 @@ router.get("/provider/by-user/:user_id", async (req, res) => {
   }
 });
 
+// --- 🌍 Lấy danh sách tour công khai ---
+router.get("/", async (req, res) => {
+  try {
+    const [tours] = await pool.query(`
+      SELECT 
+        t.tour_id,
+        t.name,
+        t.description,
+        t.price,
+        t.currency,
+        t.start_date,
+        t.end_date,
+        i.image_url
+      FROM tours t
+      LEFT JOIN images i 
+        ON i.entity_id = t.tour_id
+       AND i.entity_type = 'tour'
+      WHERE t.available = 1
+      ORDER BY t.created_at DESC
+    `);
+
+    res.json(tours);
+  } catch (err) {
+    console.error("❌ Lỗi lấy danh sách tour công khai:", err);
+    res.status(500).json({ error: "Lỗi máy chủ" });
+  }
+});
+
+
+// --- 🌍 Lấy chi tiết tour công khai theo tour_id ---
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        t.tour_id,
+        t.name,
+        t.description,
+        t.price,
+        t.currency,
+        t.start_date,
+        t.end_date,
+        t.schedule_info,
+        t.experience_info,
+        t.package_info,
+        t.guide_info,
+        t.note_info,
+        t.surcharge_info,
+        i.image_url
+      FROM tours t
+      LEFT JOIN images i 
+        ON i.entity_id = t.tour_id
+       AND i.entity_type = 'tour'
+      WHERE t.tour_id = ?
+      LIMIT 1
+    `, [id]);
+
+    if (!rows.length)
+      return res.status(404).json({ error: "Không tìm thấy tour" });
+
+    const tour = rows[0];
+
+    // ✅ Lấy thêm lịch trình (nếu có)
+    const [itinerary] = await pool.query(
+      `SELECT day_number, title, description 
+       FROM tour_itineraries 
+       WHERE tour_id = ? 
+       ORDER BY day_number ASC`,
+      [id]
+    );
+    tour.itinerary = itinerary;
+
+    // ✅ Parse thông tin lưu ý JSON nếu có
+    const fields = [
+      "schedule_info",
+      "experience_info",
+      "package_info",
+      "guide_info",
+      "note_info",
+      "surcharge_info"
+    ];
+
+    fields.forEach(field => {
+      if (tour[field]) {
+        try {
+          tour[field] = JSON.parse(tour[field]);
+        } catch (err) {
+          // Nếu không phải JSON, giữ nguyên chuỗi
+        }
+      }
+    });
+
+    res.json(tour);
+  } catch (err) {
+    console.error("❌ Lỗi lấy chi tiết tour:", err);
+    res.status(500).json({ error: "Lỗi máy chủ" });
+  }
+});
+
 
 
 module.exports = router;

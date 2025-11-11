@@ -16,6 +16,8 @@ import { api } from "@/lib/api-client"; // ✅ dùng chung như Home.jsx
 import HN1 from "@/assets/images/HN1.png";
 import Logo1 from "@/assets/images/Logo1.png";
 import Logo2 from "@/assets/images/Logo2.png";
+import travelVideo from "./video.mp4";
+
 
 export default function AboutPage() {
   const navigate = useNavigate();
@@ -346,13 +348,24 @@ export default function AboutPage() {
           </div>
 
           <div className="flex justify-center mt-8">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              onClick={() => navigate("/payments")}
-              className="px-8 py-3 bg-green-500 text-white rounded-full font-semibold shadow-md hover:bg-green-600"
+            <motion.div
+              className="relative w-[90%] md:w-[70%] lg:w-[60%] rounded-2xl overflow-hidden shadow-2xl border-4 border-orange-300"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8 }}
             >
-              💳 Thanh toán ngay
-            </motion.button>
+              <video
+                controls
+                autoPlay
+                loop
+                muted
+                className="w-full h-auto rounded-2xl"
+                poster="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80"
+              >
+                <source src={travelVideo} type="video/mp4" />
+                Trình duyệt của bạn không hỗ trợ video.
+              </video>
+            </motion.div>
           </div>
         </section>
 

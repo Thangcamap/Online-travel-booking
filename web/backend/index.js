@@ -57,6 +57,10 @@ app.use("/api/about", aboutRoutes);
 const aiRoutes = require("./src/routes/ai");
 app.use("/api/ai", aiRoutes);
 
+const bookingsRoutes = require("./src/routes/bookings");
+app.use("/api/bookings", bookingsRoutes);
+
+
 const paymentsRoutes = require("./src/routes/payments");
 
 // ✅ Thêm middleware riêng cho payments (để xử lý ảnh đúng URL)
