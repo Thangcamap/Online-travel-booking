@@ -1,50 +1,55 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronDown, Search, ArrowLeft } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { Menu } from "@headlessui/react";
 import { useQuery } from "@tanstack/react-query";
 import useAuthUserStore from "@/stores/useAuthUserStore";
-import { fetchTours, fetchTourById } from "../api/tours-api";
+import { fetchTours } from "../api/tours-api";
 
 import Logo2 from "@/assets/images/Logo2.png";
 import HN1 from "@/assets/images/HN1.png";
+import Banner from "./BannerTours.jpg";
+
+
 
 export default function ToursPage() {
   const navigate = useNavigate();
   const { authUser, setAuthUser } = useAuthUserStore();
-  const { id } = useParams(); // 👉 nếu có /tours/:id thì lấy ID
 
+  // Các ô lọc tìm kiếm
   const [search, setSearch] = useState("");
+  const [departure, setDeparture] = useState("");
+  const [priceFilter, setPriceFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
 
-  // 🧭 Fetch danh sách tour
-  const {
-    data: tours = [],
-    isLoading: loadingTours,
-    error: errorTours,
-  } = useQuery({
+  const { data: tours = [], isLoading, error } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
-    enabled: !id, // chỉ fetch khi không có id
   });
 
-  // 🧭 Fetch chi tiết tour nếu có id
-  const {
-    data: tourDetail,
-    isLoading: loadingDetail,
-    error: errorDetail,
-  } = useQuery({
-    queryKey: ["tour", id],
-    queryFn: () => fetchTourById(id),
-    enabled: !!id, // chỉ fetch khi có id
-  });
+  // Hàm lọc tour
+  const filteredTours = tours.filter((t) => {
+    const keyword = search.toLowerCase();
+    const matchesKeyword =
+      !search ||
+      t.name?.toLowerCase().includes(keyword) ||
+      t.description?.toLowerCase().includes(keyword);
+    const matchesDeparture =
+      !departure ||
+      t.description?.toLowerCase().includes(departure.toLowerCase());
+    const matchesPrice =
+      !priceFilter ||
+      (priceFilter === "low" && t.price < 1000000) ||
+      (priceFilter === "medium" && t.price >= 1000000 && t.price <= 4000000) ||
+      (priceFilter === "high" && t.price > 4000000);
+    const matchesDate =
+      !dateFilter ||
+      (t.start_date &&
+        new Date(t.start_date).toISOString().split("T")[0] === dateFilter);
 
-  // Lọc tour theo tìm kiếm
-  const filteredTours = !search
-    ? tours
-    : tours.filter((t) =>
-        t.name.toLowerCase().includes(search.toLowerCase())
-      );
+    return matchesKeyword && matchesDeparture && matchesPrice && matchesDate;
+  });
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -54,7 +59,7 @@ export default function ToursPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-orange-50 flex flex-col text-gray-800">
+    <div className="min-h-screen flex flex-col bg-white text-gray-800">
       {/* HEADER */}
       <header className="bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between px-6 py-3">
@@ -149,149 +154,124 @@ export default function ToursPage() {
         </div>
       </header>
 
-      {/* Nếu không có ID → danh sách tour */}
-      {!id && (
-        <>
-          {/* SEARCH BAR */}
-          <section className="bg-orange-100 py-6 shadow-inner">
-            <div className="max-w-4xl mx-auto flex items-center gap-4 px-4">
-              <Search className="text-orange-600" size={24} />
+      {/* 🏞️ BANNER + FORM */}
+      <section
+        className="relative h-[80vh] flex flex-col justify-center items-center text-center text-white"
+        style={{
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${Banner})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+        }}
+      >
+        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="relative z-10 w-full max-w-6xl px-6">
+          <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">
+            Hơn 1000+ Tour, Khám Phá Ngay
+          </h1>
+          <p className="text-lg text-gray-200 mb-10">
+            Giá tốt – hỗ trợ 24/7 – khắp nơi
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white/95 p-6 rounded-2xl shadow-2xl text-gray-700">
+            {/* Ô 1: từ khóa */}
+            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-3 col-span-2">
+              <Search className="text-orange-600 mr-2" />
               <input
                 type="text"
-                placeholder="Tìm kiếm tour theo tên..."
+                placeholder="Bạn muốn đi đâu?"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 p-3 rounded-lg border border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                className="w-full text-lg focus:outline-none"
               />
             </div>
-          </section>
 
-          <main className="flex-1 container mx-auto px-6 py-12">
-            <h2 className="text-3xl font-bold text-orange-700 mb-10 text-center">
-              Danh sách Tour du lịch
-            </h2>
+            {/* Ô 2: ngày khởi hành */}
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-3 text-lg focus:ring-2 focus:ring-orange-400"
+            />
 
-            {loadingTours ? (
-              <p className="text-center text-gray-500 italic">Đang tải tour...</p>
-            ) : errorTours ? (
-              <p className="text-center text-red-500">Lỗi tải dữ liệu tour.</p>
-            ) : filteredTours.length > 0 ? (
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                {filteredTours.map((tour) => (
-                  <motion.div
-                    key={tour.tour_id}
-                    whileHover={{ scale: 1.03 }}
-                    className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition cursor-pointer"
-                    onClick={() => navigate(`/tours/${tour.tour_id}`)}
-                  >
-                    <img
-                      src={tour.image_url || HN1}
-                      alt={tour.name}
-                      className="w-full h-56 object-cover"
-                    />
-                    <div className="p-5 text-center">
-                      <h3 className="text-lg font-semibold text-orange-600">
-                        {tour.name}
-                      </h3>
-                      <p className="text-gray-600 text-sm mt-1 line-clamp-2">
-                        {tour.description}
-                      </p>
-                      <p className="mt-3 font-bold text-blue-700">
-                        {Number(tour.price).toLocaleString()}₫
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-gray-500 italic">
-                Không tìm thấy tour nào.
-              </p>
-            )}
-          </main>
-        </>
-      )}
+            {/* Ô 3: nơi khởi hành */}
+            <input
+              type="text"
+              placeholder="Khởi hành từ..."
+              value={departure}
+              onChange={(e) => setDeparture(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-3 text-lg focus:ring-2 focus:ring-orange-400"
+            />
 
-      {/* Nếu có ID → hiển thị chi tiết tour */}
-      {id && (
-        <motion.div
+            {/* Ô 4: giá */}
+            <select
+              value={priceFilter}
+              onChange={(e) => setPriceFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-3 text-lg focus:ring-2 focus:ring-orange-400"
+            >
+              <option value="">Mức giá</option>
+              <option value="low">Dưới 1 triệu</option>
+              <option value="medium">1 - 4 triệu</option>
+              <option value="high">Trên 4 triệu</option>
+            </select>
+
+            {/* Nút tìm kiếm */}
+            <button className="bg-orange-500 text-white font-semibold text-lg rounded-lg py-3 hover:bg-orange-600 transition">
+              Tìm kiếm
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 📋 KẾT QUẢ CHỈ HIỆN KHI CÓ TÌM KIẾM */}
+      {(search || priceFilter || dateFilter || departure) && (
+        <motion.main
           className="flex-1 container mx-auto px-6 py-16"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <button
-            onClick={() => navigate("/tours")}
-            className="flex items-center gap-2 text-orange-600 font-semibold hover:underline mb-8"
-          >
-            <ArrowLeft size={20} /> Quay lại danh sách
-          </button>
+          <h2 className="text-3xl font-bold text-orange-700 mb-10 text-center">
+            Kết quả tìm kiếm ({filteredTours.length})
+          </h2>
 
-          {loadingDetail ? (
-            <p className="text-center text-gray-500">Đang tải chi tiết tour...</p>
-          ) : errorDetail ? (
-            <p className="text-center text-red-500">Không thể tải dữ liệu tour.</p>
-          ) : tourDetail ? (
-            <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-              <img
-                src={tourDetail.image_url || HN1}
-                alt={tourDetail.name}
-                className="w-full h-[400px] object-cover"
-              />
-              <div className="p-8">
-                <h1 className="text-4xl font-bold text-orange-600 mb-4">
-                  {tourDetail.name}
-                </h1>
-                <p className="text-gray-700 leading-relaxed mb-6">
-                  {tourDetail.description}
-                </p>
-                <p className="text-blue-700 font-bold text-2xl mb-6">
-                  Giá: {Number(tourDetail.price).toLocaleString()}₫
-                </p>
-
-                <div className="flex gap-4">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    onClick={() => navigate("/payments")}
-                    className="px-6 py-3 bg-green-500 text-white rounded-full font-semibold shadow-md hover:bg-green-600"
-                  >
-                    💳 Đặt tour ngay
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    onClick={() => navigate("/tours")}
-                    className="px-6 py-3 bg-gray-300 text-gray-700 rounded-full font-semibold shadow-md hover:bg-gray-400"
-                  >
-                    ↩️ Trở lại
-                  </motion.button>
-                </div>
-
-                {tourDetail.itinerary?.length > 0 && (
-                  <div className="mt-10">
-                    <h2 className="text-2xl font-bold mb-4 text-orange-600">
-                      📅 Lịch trình chi tiết
-                    </h2>
-                    <ul className="space-y-3">
-                      {tourDetail.itinerary.map((day) => (
-                        <li
-                          key={day.day_number}
-                          className="border p-4 rounded-xl bg-orange-50 shadow-sm"
-                        >
-                          <strong>Ngày {day.day_number}:</strong>{" "}
-                          {day.title || "Chưa có tiêu đề"} <br />
-                          <span className="text-gray-700">
-                            {day.description || "Chưa có mô tả"}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+          {isLoading ? (
+            <p className="text-center text-gray-500 italic">Đang tải tour...</p>
+          ) : error ? (
+            <p className="text-center text-red-500">Lỗi tải dữ liệu tour.</p>
+          ) : filteredTours.length > 0 ? (
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {filteredTours.map((tour) => (
+                <motion.div
+                  key={tour.tour_id}
+                  whileHover={{ scale: 1.03 }}
+                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition cursor-pointer"
+                  onClick={() => navigate(`/tours/${tour.tour_id}`)}
+                >
+                  <img
+                    src={tour.image_url || HN1}
+                    alt={tour.name}
+                    className="w-full h-56 object-cover"
+                  />
+                  <div className="p-5 text-center">
+                    <h3 className="text-lg font-semibold text-orange-600">
+                      {tour.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                      {tour.description}
+                    </p>
+                    <p className="mt-3 font-bold text-blue-700">
+                      {Number(tour.price).toLocaleString()}₫
+                    </p>
                   </div>
-                )}
-              </div>
+                </motion.div>
+              ))}
             </div>
           ) : (
-            <p className="text-center text-gray-500">Không tìm thấy tour.</p>
+            <p className="text-center text-gray-500 italic">
+              Không tìm thấy tour nào phù hợp.
+            </p>
           )}
-        </motion.div>
+        </motion.main>
       )}
 
       {/* FOOTER */}

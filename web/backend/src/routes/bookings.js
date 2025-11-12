@@ -12,14 +12,12 @@ router.post("/", async (req, res) => {
     if (!user_id || !tour_id)
       return res.status(400).json({ error: "Thiếu user_id hoặc tour_id trong request." });
 
-    // 🟩 1. Tạo booking
     await pool.query(
       `INSERT INTO bookings (user_id, tour_id, quantity, total_price, status, created_at)
        VALUES (?, ?, ?, ?, ?, NOW())`,
       [user_id, tour_id, quantity || 1, total_price, status || "pending"]
     );
 
-    // 🟩 2. Lấy booking_id vừa tạo (vì trigger đã sinh ra)
     const [latestBooking] = await pool.query(
       `SELECT booking_id FROM bookings WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`,
       [user_id]
@@ -30,7 +28,6 @@ router.post("/", async (req, res) => {
 
     const booking_id = latestBooking[0].booking_id;
 
-    // 🟩 3. Tạo payment tương ứng
     await pool.query(
       `INSERT INTO payments (payment_id, booking_id, amount, method, status, created_at)
        VALUES (
@@ -50,7 +47,6 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: "Lỗi khi đặt tour" });
   }
 });
-
 
 /* =========================================================
    📋 API: Lấy danh sách booking của user
@@ -91,7 +87,7 @@ router.get("/user/:user_id", async (req, res) => {
 });
 
 /* =========================================================
-   🔍 API: Lấy chi tiết booking (dùng trong trang thanh toán)
+   🔍 API: Lấy chi tiết booking (kèm lịch trình chi tiết tour)
 ========================================================= */
 router.get("/:booking_id", async (req, res) => {
   try {
@@ -107,12 +103,15 @@ router.get("/:booking_id", async (req, res) => {
          b.status,
          b.created_at,
          t.name AS tour_name,
+         t.description AS tour_description,
+         tp.company_name AS provider_name,
          t.start_date,
          t.end_date,
          t.currency,
          i.image_url
        FROM bookings b
        JOIN tours t ON b.tour_id = t.tour_id
+       LEFT JOIN tour_providers tp ON t.provider_id = tp.provider_id
        LEFT JOIN images i ON i.entity_id = t.tour_id AND i.entity_type = 'tour'
        WHERE b.booking_id = ?
        LIMIT 1`,
@@ -124,7 +123,23 @@ router.get("/:booking_id", async (req, res) => {
         .status(404)
         .json({ success: false, message: "Không tìm thấy booking." });
 
-    res.json({ success: true, booking: rows[0] });
+    const booking = rows[0];
+
+    const [itineraries] = await pool.query(
+      `SELECT day_number, title, description
+       FROM tour_itineraries
+       WHERE tour_id = ?
+       ORDER BY day_number ASC`,
+      [booking.tour_id]
+    );
+
+    res.json({
+      success: true,
+      booking: {
+        ...booking,
+        itineraries: itineraries || [],
+      },
+    });
   } catch (error) {
     console.error("❌ Lỗi lấy chi tiết booking:", error);
     res.status(500).json({

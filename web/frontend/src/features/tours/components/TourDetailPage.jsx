@@ -22,14 +22,14 @@ const TourDetailPage = () => {
     queryKey: ["tour", tourId],
     queryFn: () => fetchTourById(tourId),
   });
-  // 🧩 Hàm định dạng ngày
+  //  Hàm định dạng ngày
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
     return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
-  // 🧭 useEffect: đồng bộ ngày chọn với tour hiển thị
+  //  useEffect: đồng bộ ngày chọn với tour hiển thị
   React.useEffect(() => {
     if (selectedDate && tour?.start_date && tour?.end_date) {
       const start = new Date(tour.start_date);
@@ -75,7 +75,7 @@ const TourDetailPage = () => {
     }
 
     if (!validateDate()) {
-      alert("⛔ Ngày khởi hành phải trước ít nhất 2 ngày!");
+      alert(" Ngày khởi hành phải trước ít nhất 2 ngày!");
       return;
     }
 
@@ -101,7 +101,7 @@ const TourDetailPage = () => {
       alert("🎉 Đặt tour thành công! Đang chuyển đến trang thanh toán...");
       navigate(`/payments?booking_id=${data.booking_id}`);
     } catch (err) {
-      console.error("❌ Lỗi khi đặt tour:", err);
+      console.error(" Lỗi khi đặt tour:", err);
       alert("Đặt tour thất bại. Vui lòng thử lại!");
     }
   };
@@ -129,7 +129,7 @@ const TourDetailPage = () => {
         <h1 className="absolute bottom-6 left-8 text-4xl font-bold text-white drop-shadow-lg">{tour.name}</h1>
       </div>
 
-      {/* 📄 Nội dung chính */}
+      {/*  Nội dung chính */}
       <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cột trái */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
@@ -150,16 +150,16 @@ const TourDetailPage = () => {
               <span><b>Mã tour:</b> {tour.tour_id}</span>
             </div>
             <div className="flex items-center gap-2 text-gray-700">
-              💰 <b>Giá:</b>{" "}
+               <b>Giá:</b>{" "}
               <span className="text-orange-600 font-semibold">
                 {Number(basePrice).toLocaleString()} {tour.currency || "VND"}
               </span>
             </div>
           </div>
 
-          {/* 🎁 Gói ưu đãi */}
+          {/*  Gói ưu đãi */}
           <div className="mt-8">
-            <h3 className="text-xl font-semibold text-orange-600 mb-3">🎁 Lựa chọn gói ưu đãi</h3>
+            <h3 className="text-xl font-semibold text-orange-600 mb-3"> Lựa chọn gói ưu đãi</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
                 { id: "basic", name: "Gói Cơ Bản", desc: "Dành cho khách tự túc", price: tour.price },
@@ -181,17 +181,21 @@ const TourDetailPage = () => {
             </div>
           </div>
 
-          {/* 📋 Thông tin cần lưu ý */}
+          {/*  Thông tin cần lưu ý */}
           <div className="mt-10">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">📘 Thông tin cần lưu ý</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+               Thông tin cần lưu ý
+            </h3>
+
+            {/* Tabs */}
             <div className="flex gap-3 mb-4 border-b overflow-x-auto scrollbar-hide">
               {[
-                { key: "schedule_info", label: "🗓️ Lịch khởi hành & Giá tour" },
-                { key: "experience_info", label: "🌄 Trải nghiệm thú vị" },
-                { key: "package_info", label: "🎁 Tour trọn gói bao gồm" },
-                { key: "guide_info", label: "🧭 Hướng dẫn viên" },
-                { key: "note_info", label: "📝 Lưu ý" },
-                { key: "surcharge_info", label: "💰 Phụ phí" },
+                { key: "schedule_info", label: " Lịch khởi hành & Giá tour" },
+                { key: "experience_info", label: " Trải nghiệm thú vị" },
+                { key: "package_info", label: " Tour trọn gói bao gồm" },
+                { key: "guide_info", label: " Hướng dẫn viên" },
+                { key: "note_info", label: " Lưu ý" },
+                { key: "surcharge_info", label: " Phụ phí" },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -207,28 +211,81 @@ const TourDetailPage = () => {
               ))}
             </div>
 
+            {/* Nội dung tab */}
             <div className="bg-gray-50 border p-4 rounded-lg leading-relaxed text-gray-700 whitespace-pre-line">
-              {activeTab === "schedule_info" && (
-                <>
-                  <p><b>Khởi hành:</b> {formatDate(selectedDate || tour.schedule_info?.departure)}</p>
-                  <p><b>Kết thúc:</b> {formatDate(tour.end_date)}</p>
-                  <p><b>Giá cơ bản:</b> {tour.schedule_info?.base_price}</p>
-                </>
+              {activeTab === "schedule_info" && (() => {
+                let schedule = {};
+                try {
+                  schedule = JSON.parse(tour.schedule_info);
+                } catch {
+                  schedule = {};
+                }
+                return (
+                  <>
+                    <p><b> Khởi hành:</b> {schedule.departure || formatDate(tour.start_date)}</p>
+                    <p><b> Kết thúc:</b> {schedule.return || formatDate(tour.end_date)}</p>
+                    <p><b> Giá cơ bản:</b> {schedule.base_price || `${tour.price?.toLocaleString()} ${tour.currency}`}</p>
+                  </>
+                );
+              })()}
+
+              {activeTab === "experience_info" && (
+                <p>{tour.experience_info || "Không có thông tin trải nghiệm."}</p>
               )}
-              {activeTab === "experience_info" && <p>{tour.experience_info}</p>}
-              {activeTab === "package_info" && <p>{tour.package_info}</p>}
-              {activeTab === "guide_info" && <p>{tour.guide_info}</p>}
-              {activeTab === "note_info" && <p>{tour.note_info}</p>}
-              {activeTab === "surcharge_info" && <p>{tour.surcharge_info}</p>}
+              {activeTab === "package_info" && (
+                <p>{tour.package_info || "Không có thông tin gói tour."}</p>
+              )}
+              {activeTab === "guide_info" && (
+                <p>{tour.guide_info || "Không có thông tin hướng dẫn viên."}</p>
+              )}
+              {activeTab === "note_info" && (
+                <p>{tour.note_info || "Không có ghi chú đặc biệt."}</p>
+              )}
+              {activeTab === "surcharge_info" && (
+                <p>{tour.surcharge_info || "Không có thông tin phụ thu."}</p>
+              )}
             </div>
           </div>
+          {/*  Lịch trình chi tiết */}
+          <div className="mt-10">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              Lịch trình chi tiết
+            </h3>
+
+            {/*  Kiểm tra cả tour.itineraries lẫn booking.itineraries */}
+            {((tour.itineraries && tour.itineraries.length > 0) ||
+              (tour.booking_itineraries && tour.booking_itineraries.length > 0)) ? (
+              <div className="space-y-4">
+                {(tour.itineraries || tour.booking_itineraries).map((day, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="p-5 bg-white border border-orange-200 rounded-xl shadow-sm hover:shadow-lg transition"
+                  >
+                    <h4 className="text-lg font-semibold text-orange-600 mb-2">
+                       Ngày {day.day_number}: {day.title}
+                    </h4>
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                      {day.description}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">
+                Chưa có lịch trình chi tiết cho tour này.
+              </p>
+            )}
+          </div>
         </div>
-        {/* 🧾 Cột phải */}
+        {/*  Cột phải */}
         <div className="bg-white p-6 rounded-2xl shadow-md h-fit sticky top-20">
           <h3 className="text-xl font-semibold text-gray-800 mb-3">Thông tin đặt tour</h3>
 
           {/* Ngày đi */}
-          <label className="font-medium text-gray-700 block mb-1">📅 Chọn ngày khởi hành:</label>
+          <label className="font-medium text-gray-700 block mb-1"> Chọn ngày khởi hành:</label>
           <input
             type="date"
             value={selectedDate}
@@ -242,7 +299,7 @@ const TourDetailPage = () => {
           </p>
           <p className="text-gray-500 mb-4">Áp dụng cho 1 khách • Bao gồm vé, khách sạn & HDV</p>
 
-          {/* 👨‍👩‍👧 Số lượng người */}
+          {/*  Số lượng người */}
           <div className="space-y-3 mb-6">
             {[
               { key: "adults", label: "Người lớn", sub: "> 10 tuổi", min: 1 },
@@ -297,9 +354,9 @@ const TourDetailPage = () => {
         </div>
       </div>
 
-      {/* 🌴 Gợi ý tour khác */}
+      {/*  Gợi ý tour khác */}
       <div className="max-w-6xl mx-auto px-6 mt-10 mb-20">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-6">🌴 Gợi ý tour khác</h2>
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6"> Gợi ý tour khác</h2>
         <motion.div
           className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide"
           animate={{ x: [0, -200, 0] }}

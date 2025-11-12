@@ -64,8 +64,16 @@ CREATE TABLE tours (
   currency VARCHAR(3) DEFAULT 'VND',
   start_date DATE,
   end_date DATE,
-  available_slots INT DEFAULT 0,              -- 🆕 số chỗ còn lại
+  available_slots INT DEFAULT 0,              --  số chỗ còn lại
   available BOOLEAN DEFAULT TRUE,
+  -- 🆕 Các cột chi tiết mới bổ sung
+  schedule_info TEXT NULL,                    -- Lịch trình tổng quan (JSON)
+  experience_info TEXT NULL,                  -- Mô tả trải nghiệm chính
+  package_info TEXT NULL,                     -- Gói dịch vụ bao gồm
+  guide_info TEXT NULL,                       -- Thông tin hướng dẫn viên
+  note_info TEXT NULL,                        -- Lưu ý khi đi tour
+  surcharge_info TEXT NULL,                   -- Phụ thu, chi phí thêm
+
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_tour_provider FOREIGN KEY (provider_id) REFERENCES tour_providers(provider_id) ON DELETE CASCADE
@@ -84,18 +92,62 @@ CREATE TABLE images (
 );
 
 -- Bảng bookings
+DROP TABLE IF EXISTS bookings;
 CREATE TABLE bookings (
   booking_id VARCHAR(16) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL,
   tour_id VARCHAR(16) NOT NULL,
+
+  -- =============================
+  -- Thông tin snapshot của tour tại thời điểm đặt
+  -- =============================
+  tour_name VARCHAR(255) NOT NULL,             -- Tên tour tại thời điểm đặt
+  provider_name VARCHAR(255),                  -- Tên nhà cung cấp tour
+  start_date DATE,                             -- Ngày bắt đầu tour
+  end_date DATE,                               -- Ngày kết thúc tour
+  price DECIMAL(12,2),                         -- Giá tour tại thời điểm đặt
+  currency VARCHAR(5) DEFAULT 'VND',           -- Loại tiền (mặc định VND)
+
+  -- =============================
+  -- Thông tin đặt chỗ
+  -- =============================
+  quantity INT DEFAULT 1,                      -- Số lượng vé
+  total_price DECIMAL(12,2) DEFAULT 0,         -- Tổng tiền (price * quantity)
   booking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
   check_in_time TIMESTAMP NULL DEFAULT NULL,
+
+  -- =============================
+  -- Thông tin snapshot người đặt
+  -- =============================
+  customer_name VARCHAR(100),                  -- Tên khách hàng (lưu tại thời điểm đặt)
+  customer_email VARCHAR(191),                 -- Email khách hàng
+  customer_phone VARCHAR(20),                  -- Số điện thoại khách hàng
+
+  -- =============================
+  -- Thông tin chi tiết của tour tại thời điểm đặt
+  -- (bổ sung mới để hiển thị phần "Thông tin cần lưu ý")
+  -- =============================
+  schedule_info TEXT NULL,                     -- Lịch trình tổng quan (JSON)
+  experience_info TEXT NULL,                   -- Mô tả trải nghiệm chính
+  package_info TEXT NULL,                      -- Gói dịch vụ bao gồm
+  guide_info TEXT NULL,                        -- Thông tin hướng dẫn viên
+  note_info TEXT NULL,                         -- Lưu ý khi đi tour
+  surcharge_info TEXT NULL,                    -- Phụ thu, chi phí thêm
+
+  -- =============================
+  -- Thông tin hệ thống
+  -- =============================
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  -- =============================
+  -- Ràng buộc khóa ngoại
+  -- =============================
   CONSTRAINT fk_booking_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   CONSTRAINT fk_booking_tour FOREIGN KEY (tour_id) REFERENCES tours(tour_id) ON DELETE CASCADE
 );
+
 
 -- Bảng thanh toán
 CREATE TABLE payments (
@@ -104,6 +156,7 @@ CREATE TABLE payments (
   amount DECIMAL(10,2) NOT NULL,
   method ENUM('cash', 'card', 'online') NOT NULL,
   status ENUM('unpaid', 'paid') DEFAULT 'unpaid',
+  payment_image VARCHAR(255) NULL,       --  Ảnh hóa đơn / chứng từ thanh toán
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_payment_booking FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE
@@ -151,3 +204,83 @@ CREATE TABLE tour_itineraries (
   FOREIGN KEY (tour_id) REFERENCES tours(tour_id) ON DELETE CASCADE
 );
 
+
+-- Trigger tự động sinh booking_id
+DROP TRIGGER IF EXISTS before_insert_booking;
+DELIMITER //
+CREATE TRIGGER before_insert_booking
+BEFORE INSERT ON bookings
+FOR EACH ROW
+BEGIN
+  IF NEW.booking_id IS NULL OR NEW.booking_id = '' THEN
+    SET NEW.booking_id = CONCAT(
+      'B',
+      LPAD(
+        (SELECT IFNULL(MAX(CAST(SUBSTRING(booking_id, 2) AS UNSIGNED)), 0) + 1 FROM bookings),
+        4,
+        '0'
+      )
+    );
+  END IF;
+END;
+//
+DELIMITER ;
+
+-- Trigger tự động tính total_price và lưu toàn bộ snapshot
+DROP TRIGGER IF EXISTS before_insert_booking_price;
+DELIMITER //
+CREATE TRIGGER before_insert_booking_price
+BEFORE INSERT ON bookings
+FOR EACH ROW
+BEGIN
+  DECLARE t_price DECIMAL(12,2);
+  DECLARE t_name VARCHAR(255);
+  DECLARE p_name VARCHAR(255);
+  DECLARE s_date DATE;
+  DECLARE e_date DATE;
+  DECLARE u_name VARCHAR(100);
+  DECLARE u_email VARCHAR(191);
+  DECLARE u_phone VARCHAR(20);
+  DECLARE sched TEXT;
+  DECLARE exp TEXT;
+  DECLARE pack TEXT;
+  DECLARE guide TEXT;
+  DECLARE note TEXT;
+  DECLARE surcharge TEXT;
+
+  SELECT name, price, start_date, end_date,
+         schedule_info, experience_info, package_info, guide_info, note_info, surcharge_info
+    INTO t_name, t_price, s_date, e_date,
+         sched, exp, pack, guide, note, surcharge
+  FROM tours
+  WHERE tour_id = NEW.tour_id;
+
+  SELECT tp.company_name INTO p_name
+  FROM tour_providers tp
+  JOIN tours t ON t.provider_id = tp.provider_id
+  WHERE t.tour_id = NEW.tour_id;
+
+  SELECT name, email, phone_number INTO u_name, u_email, u_phone
+  FROM users
+  WHERE user_id = NEW.user_id;
+
+  SET NEW.tour_name = t_name;
+  SET NEW.provider_name = p_name;
+  SET NEW.price = t_price;
+  SET NEW.start_date = s_date;
+  SET NEW.end_date = e_date;
+  SET NEW.total_price = t_price * IFNULL(NEW.quantity, 1);
+
+  SET NEW.customer_name = u_name;
+  SET NEW.customer_email = u_email;
+  SET NEW.customer_phone = u_phone;
+
+  SET NEW.schedule_info = sched;
+  SET NEW.experience_info = exp;
+  SET NEW.package_info = pack;
+  SET NEW.guide_info = guide;
+  SET NEW.note_info = note;
+  SET NEW.surcharge_info = surcharge;
+END;
+//
+DELIMITER ;

@@ -477,7 +477,8 @@ router.get("/:id", async (req, res) => {
        ORDER BY day_number ASC`,
       [id]
     );
-    tour.itinerary = itinerary;
+    tour.itineraries = itinerary;
+
 
     // ✅ Parse thông tin lưu ý JSON nếu có
     const fields = [

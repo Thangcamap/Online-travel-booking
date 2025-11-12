@@ -7,7 +7,34 @@ const bookingApi = axios.create({
   withCredentials: true,
 });
 
+/* =========================================================
+   🧾 Tạo booking mới
+========================================================= */
 export const createBooking = async (bookingData) => {
   const res = await bookingApi.post("/bookings", bookingData);
+  return res.data;
+};
+
+/* =========================================================
+   📋 Lấy danh sách booking theo user
+========================================================= */
+export const fetchBookingsByUser = async (userId) => {
+  const res = await bookingApi.get(`/bookings/user/${userId}`);
+  return res.data.bookings;
+};
+
+/* =========================================================
+   🔍 Lấy chi tiết booking (kèm tour, ảnh, lịch trình)
+========================================================= */
+export const fetchBookingDetail = async (bookingId) => {
+  const res = await bookingApi.get(`/bookings/${bookingId}`);
+  return res.data.booking;
+};
+
+/* =========================================================
+   💳 Cập nhật trạng thái booking
+========================================================= */
+export const updateBookingStatus = async (bookingId, status) => {
+  const res = await bookingApi.put(`/bookings/${bookingId}/status`, { status });
   return res.data;
 };
