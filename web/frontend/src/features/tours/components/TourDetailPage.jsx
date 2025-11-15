@@ -5,6 +5,7 @@ import { fetchTourById, fetchTours } from "../api/tours-api";
 import useAuthUserStore from "@/stores/useAuthUserStore";
 import { Calendar, MapPin, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import Navbar from "@/components/Navbar";
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -114,14 +115,12 @@ const TourDetailPage = () => {
     return <div className="text-center py-16 text-gray-500">Không tìm thấy tour này.</div>;
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* 🔙 Quay lại */}
-      <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-        <Link to="/tours" className="flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium">
-          <ArrowLeft size={20} /> Quay lại danh sách Tour
-        </Link>
-      </div>
-
+        <div className="bg-gray-50 min-h-screen">
+    
+    {/* 🔹 NAVBAR */}
+    <Navbar />
+    <div className="pt-20"></div>
+      
       {/* 🏞 Banner */}
       <div className="relative w-full h-[420px]">
         <img src={tour.image_url || "/src/assets/images/default-tour.jpg"} alt={tour.name} className="w-full h-full object-cover" />
@@ -181,71 +180,6 @@ const TourDetailPage = () => {
             </div>
           </div>
 
-          {/*  Thông tin cần lưu ý */}
-          <div className="mt-10">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
-               Thông tin cần lưu ý
-            </h3>
-
-            {/* Tabs */}
-            <div className="flex gap-3 mb-4 border-b overflow-x-auto scrollbar-hide">
-              {[
-                { key: "schedule_info", label: " Lịch khởi hành & Giá tour" },
-                { key: "experience_info", label: " Trải nghiệm thú vị" },
-                { key: "package_info", label: " Tour trọn gói bao gồm" },
-                { key: "guide_info", label: " Hướng dẫn viên" },
-                { key: "note_info", label: " Lưu ý" },
-                { key: "surcharge_info", label: " Phụ phí" },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`pb-2 border-b-2 ${
-                    activeTab === tab.key
-                      ? "border-orange-500 text-orange-600"
-                      : "border-transparent text-gray-500"
-                  } font-medium transition`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Nội dung tab */}
-            <div className="bg-gray-50 border p-4 rounded-lg leading-relaxed text-gray-700 whitespace-pre-line">
-              {activeTab === "schedule_info" && (() => {
-                let schedule = {};
-                try {
-                  schedule = JSON.parse(tour.schedule_info);
-                } catch {
-                  schedule = {};
-                }
-                return (
-                  <>
-                    <p><b> Khởi hành:</b> {schedule.departure || formatDate(tour.start_date)}</p>
-                    <p><b> Kết thúc:</b> {schedule.return || formatDate(tour.end_date)}</p>
-                    <p><b> Giá cơ bản:</b> {schedule.base_price || `${tour.price?.toLocaleString()} ${tour.currency}`}</p>
-                  </>
-                );
-              })()}
-
-              {activeTab === "experience_info" && (
-                <p>{tour.experience_info || "Không có thông tin trải nghiệm."}</p>
-              )}
-              {activeTab === "package_info" && (
-                <p>{tour.package_info || "Không có thông tin gói tour."}</p>
-              )}
-              {activeTab === "guide_info" && (
-                <p>{tour.guide_info || "Không có thông tin hướng dẫn viên."}</p>
-              )}
-              {activeTab === "note_info" && (
-                <p>{tour.note_info || "Không có ghi chú đặc biệt."}</p>
-              )}
-              {activeTab === "surcharge_info" && (
-                <p>{tour.surcharge_info || "Không có thông tin phụ thu."}</p>
-              )}
-            </div>
-          </div>
           {/*  Lịch trình chi tiết */}
           <div className="mt-10">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">

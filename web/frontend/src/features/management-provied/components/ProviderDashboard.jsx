@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import ProviderInfo from "../components/ProviderInfo";
 import { socket } from "@/lib/socket";
 import { toast } from "sonner";
+import Navbar from "@/components/Navbar";
 
 export default function ProviderDashboard() {
   const [provider, setProvider] = useState(null);
@@ -221,7 +222,12 @@ socket.on("provider_status_changed", async (data) => {
   };
 
   return (
-    <div className="min-h-screen grid grid-cols-[260px_1fr] bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+
+    {/* Navbar đặt trên sidebar */}
+    <Navbar />
+
+    <div className="grid grid-cols-[260px_1fr] flex-grow">
       {/* SIDEBAR */}
       <aside className="bg-white border-r border-gray-200 flex flex-col justify-between">
         <div>
@@ -264,22 +270,6 @@ socket.on("provider_status_changed", async (data) => {
               </button>
             ))}
           </nav>
-        </div>
-
-        {/* Footer */}
-        <div className="border-t mt-4 px-4 py-3 space-y-2">
-          <Link
-            to="/home"
-            className="flex items-center gap-2 text-gray-700 hover:text-orange-600"
-          >
-            <Home size={18} /> Trang chủ
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700"
-          >
-            <LogOut size={18} /> Đăng xuất
-          </button>
         </div>
       </aside>
 
@@ -353,5 +343,6 @@ socket.on("provider_status_changed", async (data) => {
         )}
       </main>
     </div>
+  </div>
   );
 }

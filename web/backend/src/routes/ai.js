@@ -274,5 +274,33 @@ Trả lời bằng tiếng Việt.
     res.status(500).json({ success: false, message: "Lỗi xử lý AI." });
   }
 });
+router.get("/history/:user_id", async (req, res) => {
+  const { user_id } = req.params;
+
+  if (!user_id) {
+    return res.status(400).json({ success: false, message: "Thiếu user_id" });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT role, message FROM ai_messages 
+       WHERE user_id = ? 
+       ORDER BY created_at ASC`,
+      [user_id]
+    );
+
+    res.json({
+      success: true,
+      messages: rows.map(r => ({
+        role: r.role,
+        message: r.message
+      }))
+    });
+  } catch (err) {
+    console.error("❌ Lỗi tải lịch sử chat:", err);
+    res.status(500).json({ success: false, message: "Lỗi tải lịch sử chat" });
+  }
+});
+
 
 module.exports = router;

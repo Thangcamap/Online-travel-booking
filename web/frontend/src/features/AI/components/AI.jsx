@@ -67,9 +67,10 @@ const user_id = authUser?.user_id || null;
     }
   };
 
-  const handleBook = (tour_id) => {
-    window.location.href = `/book/${tour_id}`;
-  };
+const handleBook = (tour_id) => {
+  window.location.href = `/tours/${tour_id}`;
+};
+
 
   return (
     <div className="flex flex-col w-full bg-white rounded-2xl shadow-2xl border border-orange-200 p-4 h-[65vh]">

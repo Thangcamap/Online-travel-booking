@@ -34,6 +34,7 @@ import { createAddress } from "../../Location/api/address-api";
 import useAuthUserStore from "@/stores/useAuthUserStore";
 import { socket } from "@/lib/socket";
 import { toast } from "sonner";
+import Navbar from "@/components/Navbar";
 
 
 // ✅ Validation schema
@@ -251,7 +252,12 @@ const { mutate, isLoading } = useMutation({
 
   // ✅ Render
   return (
-    <>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+
+    {/* 🔸 Navbar trên cùng */}
+    <Navbar />
+
+    {/* 🔸 Nội dung bên dưới Nav */}
       {contentState === "loading" && (
         <div className="flex flex-col items-center justify-center h-64 text-gray-600">
           <Loader2 className="animate-spin w-6 h-6 mb-2" />
@@ -468,6 +474,6 @@ const { mutate, isLoading } = useMutation({
           </div>
         </>
       )}
-    </>
+  </div>
   );
 }
