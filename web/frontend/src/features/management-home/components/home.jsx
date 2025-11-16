@@ -9,6 +9,8 @@ import { MessageCircle, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { socket } from "@/lib/socket"; 
 import Navbar from "@/components/Navbar";
+import { Search } from "lucide-react";
+
 
 
 
@@ -17,8 +19,12 @@ const Home = () => {
   const navigate = useNavigate();
   const { authUser, setAuthUser } = useAuthUserStore();
   const [tours, setTours] = useState([]);
-  const [search, setSearch] = useState("");
   const [showChat, setShowChat] = useState(false);
+  const [search, setSearch] = useState("");
+  const [departure, setDeparture] = useState("");
+  const [priceFilter, setPriceFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+
 
 
   // Nếu chưa login → quay về login
@@ -111,9 +117,31 @@ const handleLogout = () => {
 
 
   // Lọc tour theo từ khóa
-  const filteredTours = tours.filter((tour) =>
-    tour.name.toLowerCase().includes(search.toLowerCase())
-  );
+const filteredTours = tours.filter((t) => {
+  const keyword = search.toLowerCase();
+  const matchesKeyword =
+    !search ||
+    t.name?.toLowerCase().includes(keyword) ||
+    t.description?.toLowerCase().includes(keyword);
+
+  const matchesDeparture =
+    !departure ||
+    t.departure_location?.toLowerCase().includes(departure.toLowerCase());
+
+  const matchesPrice =
+    !priceFilter ||
+    (priceFilter === "low" && t.price < 1000000) ||
+    (priceFilter === "medium" && t.price >= 1000000 && t.price <= 4000000) ||
+    (priceFilter === "high" && t.price > 4000000);
+
+  const matchesDate =
+    !dateFilter ||
+    (t.start_date &&
+      new Date(t.start_date).toISOString().split("T")[0] === dateFilter);
+
+  return matchesKeyword && matchesDeparture && matchesPrice && matchesDate;
+});
+
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 text-gray-800">
@@ -122,29 +150,80 @@ const handleLogout = () => {
 
       {/* HERO SECTION */}
 <section
-  className="relative w-full h-[65vh] flex flex-col justify-center items-center text-center bg-cover bg-center"
+  className="relative h-[80vh] flex flex-col justify-center items-center text-center text-white"
   style={{
-    backgroundImage: "url('/src/assets/images/Home1.png')",
+    backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('/src/assets/images/Home1.png')`,
+    backgroundSize: "cover",
+    backgroundPosition: "center center",
   }}
 >
-  <div className="absolute inset-0 bg-black/28"></div>
+  <div className="absolute inset-0 bg-black/0"></div>
 
-  <h1 className="text-6xl font-bold mb-7 text-white drop-shadow-lg">
-    Smart Tourism in Da Nang
-  </h1>
-  <p className="text-lg mb-60 text-gray-100 opacity-110">
-    An innovative online travel booking platform that uses AI to recommend personalized destinations and experiences.
-  </p>
+  <div className="relative z-10 w-full max-w-6xl px-6">
+    <h1 className="text-5xl font-bold mb-4 drop-shadow-lg">
+      Hơn 1000+ Tour, Khám Phá Ngay
+    </h1>
+    <p className="text-lg text-gray-200 mb-10">
+      Giá tốt – hỗ trợ 24/7 – khắp nơi
+    </p>
+
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white/95 p-6 rounded-2xl shadow-2xl text-gray-700">
+      
+      {/* Ô 1: từ khóa */}
+      <div className="flex items-center border border-gray-300 rounded-lg px-3 py-3 col-span-2">
+        <Search className="text-orange-600 mr-2" />
+        <input
+          type="text"
+          placeholder="Bạn muốn đi đâu?"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full text-lg focus:outline-none"
+        />
+      </div>
+
+      {/* Ô 2: ngày khởi hành */}
+      <input
+        type="date"
+        value={dateFilter}
+        onChange={(e) => setDateFilter(e.target.value)}
+        className="border border-gray-300 rounded-lg px-3 py-3 text-lg focus:ring-2 focus:ring-orange-400"
+      />
+
+      {/* Ô 3: nơi khởi hành */}
+      <input
+        type="text"
+        placeholder="Khởi hành từ..."
+        value={departure}
+        onChange={(e) => setDeparture(e.target.value)}
+        className="border border-gray-300 rounded-lg px-3 py-3 text-lg focus:ring-2 focus:ring-orange-400"
+      />
+
+      {/* Ô 4: giá */}
+      <select
+        value={priceFilter}
+        onChange={(e) => setPriceFilter(e.target.value)}
+        className="border border-gray-300 rounded-lg px-3 py-3 text-lg focus:ring-2 focus:ring-orange-400"
+      >
+        <option value="">Mức giá</option>
+        <option value="low">Dưới 1 triệu</option>
+        <option value="medium">1 - 4 triệu</option>
+        <option value="high">Trên 4 triệu</option>
+      </select>
+
+      {/* Nút */}
+      <button className="bg-orange-500 text-white font-semibold text-lg rounded-lg py-3 hover:bg-orange-600 transition">
+        Tìm kiếm
+      </button>
+    </div>
+  </div>
 </section>
-
 
       {/* POPULAR TOURS */}
       <section className="py-16 bg-gray-100">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold mb-8 text-gray-800">
             Popular Tours
-          </h2>
-
+          </h2>       
           {filteredTours.length === 0 ? (
             <p className="text-gray-500">No tours available yet.</p>
           ) : (
