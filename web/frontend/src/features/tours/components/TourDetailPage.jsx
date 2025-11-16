@@ -6,6 +6,14 @@ import useAuthUserStore from "@/stores/useAuthUserStore";
 import { Calendar, MapPin, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+import { Navigation, Pagination } from "swiper/modules";
+import { Dialog } from "@headlessui/react";
+import { X } from "lucide-react";
+
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -18,6 +26,8 @@ const TourDetailPage = () => {
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [activeTab, setActiveTab] = useState("include");
+  const [openGallery, setOpenGallery] = useState(false);
+
 
   const { data: tour, isLoading, error } = useQuery({
     queryKey: ["tour", tourId],
@@ -119,14 +129,51 @@ const TourDetailPage = () => {
     
     {/* 🔹 NAVBAR */}
     <Navbar />
-    <div className="pt-20"></div>
-      
+    <div className="pt-6"></div>
+
+
+    {/* 🔹 Tên Tour */}
+<div className="max-w-6xl mx-auto px-6 mt-4">
+  <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+    {tour.name}
+  </h1>
+</div>
       {/* 🏞 Banner */}
-      <div className="relative w-full h-[420px]">
-        <img src={tour.image_url || "/src/assets/images/default-tour.jpg"} alt={tour.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-        <h1 className="absolute bottom-6 left-8 text-4xl font-bold text-white drop-shadow-lg">{tour.name}</h1>
-      </div>
+<div className="max-w-6xl mx-auto px-6 mt-6">
+  <div className="grid grid-cols-4 gap-3 rounded-xl overflow-hidden">
+    {/* Ảnh lớn */}
+    <div
+      className="col-span-2 row-span-2 cursor-pointer"
+      onClick={() => setOpenGallery(true)}
+    >
+      <img
+        src={(tour.images?.length > 0 ? tour.images[0] : tour.image_url)}
+        className="w-full h-[420px] object-cover rounded-xl"
+      />
+    </div>
+
+    {/* Ảnh nhỏ bên phải */}
+    {(tour.images?.length > 1 ? tour.images.slice(1, 5) : [])
+      .map((img, index) => (
+        <div
+          key={index}
+          className="h-[200px] cursor-pointer relative"
+          onClick={() => setOpenGallery(true)}
+        >
+          <img src={img} className="w-full h-full object-cover rounded-xl" />
+
+          {/* 🔹 Overlay "Xem tất cả" ở ảnh cuối */}
+          {index === 3 && tour.images.length > 5 && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center 
+            text-white font-semibold text-lg rounded-xl">
+              📷 Xem tất cả hình ảnh
+            </div>
+          )}
+        </div>
+      ))}
+  </div>
+</div>
+
 
       {/*  Nội dung chính */}
       <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8">

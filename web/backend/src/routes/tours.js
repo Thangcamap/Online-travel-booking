@@ -439,7 +439,9 @@ router.get("/", async (req, res) => {
 // --- 🌍 Lấy chi tiết tour công khai theo tour_id ---
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
+
   try {
+    // 🟢 Lấy thông tin tour
     const [rows] = await pool.query(`
       SELECT 
         t.tour_id,
@@ -454,22 +456,24 @@ router.get("/:id", async (req, res) => {
         t.package_info,
         t.guide_info,
         t.note_info,
-        t.surcharge_info,
-        i.image_url
+        t.surcharge_info
       FROM tours t
-      LEFT JOIN images i 
-        ON i.entity_id = t.tour_id
-       AND i.entity_type = 'tour'
       WHERE t.tour_id = ?
       LIMIT 1
     `, [id]);
 
-    if (!rows.length)
-      return res.status(404).json({ error: "Không tìm thấy tour" });
+    if (!rows.length) return res.status(404).json({ error: "Không tìm thấy tour" });
 
     const tour = rows[0];
 
-    // ✅ Lấy thêm lịch trình (nếu có)
+    // 🟢 Lấy toàn bộ ảnh của tour
+    const [images] = await pool.query(
+      `SELECT image_url FROM images WHERE entity_type='tour' AND entity_id=?`,
+      [id]
+    );
+    tour.images = images.map(i => i.image_url);
+
+    // 🟢 Lịch trình
     const [itinerary] = await pool.query(
       `SELECT day_number, title, description 
        FROM tour_itineraries 
@@ -479,33 +483,14 @@ router.get("/:id", async (req, res) => {
     );
     tour.itineraries = itinerary;
 
-
-    // ✅ Parse thông tin lưu ý JSON nếu có
-    const fields = [
-      "schedule_info",
-      "experience_info",
-      "package_info",
-      "guide_info",
-      "note_info",
-      "surcharge_info"
-    ];
-
-    fields.forEach(field => {
-      if (tour[field]) {
-        try {
-          tour[field] = JSON.parse(tour[field]);
-        } catch (err) {
-          // Nếu không phải JSON, giữ nguyên chuỗi
-        }
-      }
-    });
-
     res.json(tour);
+
   } catch (err) {
-    console.error("❌ Lỗi lấy chi tiết tour:", err);
-    res.status(500).json({ error: "Lỗi máy chủ" });
+    console.error(err);
+    res.status(500).json({ error: "Lỗi server" });
   }
 });
+
 
 
 
