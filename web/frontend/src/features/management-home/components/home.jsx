@@ -25,6 +25,14 @@ const Home = () => {
   const [priceFilter, setPriceFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
 
+  // Hàm tách phần thành phố từ địa chỉ
+  const getCity = (location) => {
+    if (!location) return "";
+    // Nếu có dấu phẩy, lấy phần trước dấu phẩy
+    const parts = location.split(",");
+    return parts[0].trim();
+  };
+
 
 
   // Nếu chưa login → quay về login
@@ -248,6 +256,13 @@ const filteredTours = tours.filter((t) => {
                     <p className="text-gray-600 text-sm mb-3 line-clamp-3">
                       {tour.description || "No description available."}
                     </p>
+
+                    {tour.departure_location && (
+  <p className="text-sm text-gray-500 mb-3">
+    xuất phát : <span className="font-medium">{getCity(tour.departure_location)}</span>
+  </p>
+)}
+
                     <div className="flex justify-between items-center">
                       <span className="text-orange-500 font-semibold">
                         {Number(tour.price).toLocaleString()}{" "}

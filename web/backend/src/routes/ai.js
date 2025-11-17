@@ -255,11 +255,12 @@ Trả lời bằng tiếng Việt.
     }
 
     // 🔟 Lưu phản hồi AI
-    await pool.query(
-      `INSERT INTO ai_messages (message_id, user_id, role, message)
-       VALUES (?, ?, 'assistant', ?)`,
-      [uuidv4(), user_id, aiReply]
-    );
+await pool.query(
+  `INSERT INTO ai_messages (message_id, user_id, role, message, tours)
+   VALUES (?, ?, 'assistant', ?, ?)`,
+  [uuidv4(), user_id, aiReply, JSON.stringify(matchedTours)]
+);
+
 
     res.json({
       success: true,
@@ -283,7 +284,7 @@ router.get("/history/:user_id", async (req, res) => {
 
   try {
     const [rows] = await pool.query(
-      `SELECT role, message FROM ai_messages 
+      `SELECT role, message, tours FROM ai_messages
        WHERE user_id = ? 
        ORDER BY created_at ASC`,
       [user_id]
@@ -293,7 +294,8 @@ router.get("/history/:user_id", async (req, res) => {
       success: true,
       messages: rows.map(r => ({
         role: r.role,
-        message: r.message
+        message: r.message,
+        tours: r.tours ? JSON.parse(r.tours) : []
       }))
     });
   } catch (err) {

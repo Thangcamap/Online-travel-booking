@@ -18,17 +18,18 @@ router.get("/tours", async (req, res) => {
         t.available_slots,
         t.available,
         tp.company_name,
+        a.city AS departure_location,
         (SELECT image_url FROM images 
           WHERE entity_type='tour' AND entity_id=t.tour_id 
           LIMIT 1) AS image_url
       FROM tours t
       LEFT JOIN tour_providers tp ON t.provider_id = tp.provider_id
-      
-            LEFT JOIN users u ON tp.user_id = u.user_id  -- ✅ thêm để kiểm tra trạng thái user
+      LEFT JOIN users u ON tp.user_id = u.user_id 
+      LEFT JOIN addresses a ON tp.address_id = a.address_id 
       WHERE 
-        t.available = 1                             -- ✅ tour đang hiển thị
-        AND tp.status = 'active'                    -- ✅ provider đang hoạt động
-        AND tp.approval_status = 'approved'         -- ✅ provider đã được admin duyệt
+        t.available = 1                             
+        AND tp.status = 'active'                    
+        AND tp.approval_status = 'approved'        
         AND u.status = 'active'
 
         /*  BỔ SUNG: Ẩn tour nếu provider bị khóa hoặc chưa duyệt */
