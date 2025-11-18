@@ -63,3 +63,14 @@ export const getProviderByUser = async (userId) => {
 export const getProviderById = (providerId) =>
   axios.get(`/providers/${providerId}`);
 
+// 🟢 Lấy danh sách booking theo provider
+export const getBookingsByProvider = (providerId) => {
+  if (!providerId) throw new Error("Thiếu providerId khi gọi getBookingsByProvider");
+  return axios.get(`/providers/${providerId}/bookings`);
+};
+
+// 🟢 Provider cập nhật trạng thái booking
+export const updateBookingStatus = (bookingId, status) => {
+  if (!bookingId || !status) throw new Error("Thiếu bookingId hoặc status khi update");
+  return axios.put(`/bookings/${bookingId}/status`, { status });
+};

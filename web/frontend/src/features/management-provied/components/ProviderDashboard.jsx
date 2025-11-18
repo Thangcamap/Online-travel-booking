@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Home, LogOut, Info, BarChart3, List, Plus } from "lucide-react";
+import { Home, LogOut, Info, BarChart3, List, Plus, TicketCheck  } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import StatCard from "../components/StatCard";
 import TourManagement from "../components/TourManagement";
@@ -9,6 +9,7 @@ import { getTours, getProviderByUser } from "../api/tours-api";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import ProviderInfo from "../components/ProviderInfo";
+import ProviderBookings from "../components/ProviderBookings";
 import { socket } from "@/lib/socket";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
@@ -254,6 +255,7 @@ socket.on("provider_status_changed", async (data) => {
               { key: "info", label: "Thông tin", icon: <Info size={18} /> },
               { key: "manage", label: "Quản lý tour", icon: <List size={18} /> },
               { key: "add", label: "Thêm tour", icon: <Plus size={18} /> },
+              { key: "booking", label: "Quản lý đặt tour", icon: <TicketCheck size={18} /> },
               { key: "stats", label: "Thống kê", icon: <BarChart3 size={18} /> },
             ].map((item) => (
               <button
@@ -296,7 +298,7 @@ socket.on("provider_status_changed", async (data) => {
 
         {activeTab === "add" && (
           <div>
-            <h1 className="text-2xl font-semibold text-green-600 mb-4">
+            <h1 className="text-2xl font-semibold text-orange-600 mb-4">
               Thêm Tour Mới
             </h1>
             <Card className="p-6 border border-green-100 shadow-sm bg-white">
@@ -306,6 +308,15 @@ socket.on("provider_status_changed", async (data) => {
               />
             </Card>
           </div>
+        )}
+
+        {activeTab === "booking" && (
+            <div>
+              <h1 className="text-2xl font-semibold text-orange-600 mb-4">
+                Danh sách khách đặt tour
+              </h1>
+              <ProviderBookings providerId={providerId} />
+            </div>
         )}
 
         {activeTab === "stats" && (

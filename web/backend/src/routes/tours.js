@@ -491,6 +491,75 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// GET /api/providers/:providerId/bookings
+router.get("/providers/:providerId/bookings", async (req, res) => {
+  const { providerId } = req.params;
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT 
+        b.booking_id,
+        b.quantity,
+        b.total_price,
+        b.status AS booking_status,
+        b.booking_date,
+        b.check_in_time,
+
+        u.name AS user_name,
+        u.email,
+        u.phone_number,
+
+        t.name AS tour_name,
+        t.tour_id,
+
+        p.payment_id,
+        p.method,
+        p.amount,
+        p.status AS payment_status,
+        p.payment_image
+
+      FROM bookings b
+      INNER JOIN users u ON b.user_id = u.user_id
+      INNER JOIN tours t ON b.tour_id = t.tour_id
+      INNER JOIN payments p ON p.booking_id = b.booking_id
+      WHERE t.provider_id = ?
+      AND p.status = 'paid'
+      ORDER BY b.created_at DESC`,
+      [providerId]
+    );
+
+    res.json({ success: true, bookings: rows });
+  } catch (err) {
+    console.error("❌ Error fetching provider bookings:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+
+// PUT /api/bookings/:booking_id/status
+router.put("/bookings/:booking_id/status", async (req, res) => {
+  const { booking_id } = req.params;
+  const { status } = req.body;
+
+  if (!["pending", "confirmed", "completed", "cancelled"].includes(status)) {
+    return res.status(400).json({ success: false, message: "Invalid status" });
+  }
+
+  try {
+    const [result] = await pool.query(
+      `UPDATE bookings SET status = ?, updated_at = NOW() WHERE booking_id = ?`,
+      [status, booking_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.json({ success: false, message: "Booking not found" });
+    }
+
+    res.json({ success: true, message: "Booking status updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error", err });
+  }
+});
 
 
 
