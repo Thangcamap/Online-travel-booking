@@ -1,16 +1,26 @@
 import { api } from "@/lib/api-client";
 
-export const sendMessage = async (messageData) => {
-  const { data } = await api.post("/chat/send", messageData);
-  return data;
+export const sendMessage = async ({ userId, providerId, tourId, content }) => {
+  const { data } = await api.post("/chat/send", {
+    user_id: userId,
+    provider_id: providerId,
+    tour_id: tourId,
+    content,
+    sender: "user",
+  });
+
+  return data.message;
 };
 
-export const getChatHistory = async ({ tour_id, user_id, provider_id }) => {
+
+export const getChatHistory = async ({ user_id, provider_id }) => {
   const { data } = await api.get("/chat/history", {
-    params: { tour_id, user_id, provider_id },
+    params: { user_id, provider_id },
   });
-  return data.messages;
+  return data.messages ?? [];
 };
+
+
 
 export const getProviderConversations = async (provider_id) => {
   const { data } = await api.get(`/chat/conversations/provider/${provider_id}`);
@@ -18,7 +28,7 @@ export const getProviderConversations = async (provider_id) => {
 };
 
 export const sendMessageToUser = async ({ providerId, userId, tourId, message }) => {
-  const res = await api.post("/chat/send", {
+  const { data } = await api.post("/chat/send", {
     provider_id: providerId,
     user_id: userId,
     tour_id: tourId,
@@ -26,6 +36,7 @@ export const sendMessageToUser = async ({ providerId, userId, tourId, message })
     content: message,
   });
 
-  return res.data;
+  return data.message;
 };
+
 

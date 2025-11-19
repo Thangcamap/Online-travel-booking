@@ -47,18 +47,21 @@ if (io) {
 // Lấy lịch sử conversation theo tour + user + provider (hoặc tất cả conversation cho provider)
 router.get("/history", async (req, res) => {
   try {
-    // query params: tour_id, user_id, provider_id
-    const { tour_id, user_id, provider_id, limit = 200 } = req.query;
-    if (!tour_id || !user_id || !provider_id)
+    const { user_id, provider_id, limit = 200 } = req.query;
+
+    if (!user_id || !provider_id)
       return res.status(400).json({ success: false, message: "Thiếu tham số" });
 
     const [rows] = await pool.query(
-      `SELECT message_id, tour_id, user_id, provider_id, sender, content, read_flag, created_at
-       FROM messages
-       WHERE tour_id = ? AND user_id = ? AND provider_id = ?
-       ORDER BY created_at ASC
+      `SELECT m.message_id, m.tour_id, t.name AS tour_name,
+              m.user_id, m.provider_id, m.sender, m.content,
+              m.read_flag, m.created_at
+       FROM messages m
+       LEFT JOIN tours t ON t.tour_id = m.tour_id
+       WHERE m.user_id = ? AND m.provider_id = ?
+       ORDER BY m.created_at ASC
        LIMIT ?`,
-      [tour_id, user_id, provider_id, Number(limit)]
+      [user_id, provider_id, Number(limit)]
     );
 
     res.json({ success: true, messages: rows });
@@ -68,22 +71,30 @@ router.get("/history", async (req, res) => {
   }
 });
 
+
 // Lấy danh sách conversation (chỉ cho provider) — trả user_id + last message + count unread
 router.get("/conversations/provider/:providerId", async (req, res) => {
   try {
     const { providerId } = req.params;
+
     const [rows] = await pool.query(
-      `SELECT m.user_id,
-            m.tour_id, 
-            u.name AS user_name,
-            MAX(m.created_at) AS last_at,
-            (SELECT content FROM messages WHERE user_id = m.user_id AND provider_id = ? ORDER BY created_at DESC LIMIT 1) AS last_message,
-            SUM(CASE WHEN m.read_flag = 0 AND m.sender = 'user' THEN 1 ELSE 0 END) AS unread_count
-       FROM messages m
-       JOIN users u ON u.user_id = m.user_id
-       WHERE m.provider_id = ?
-       GROUP BY m.user_id, u.name
-       ORDER BY last_at DESC`,
+      `SELECT 
+    m.user_id,
+    u.name AS user_name,
+    MAX(m.created_at) AS last_at,
+    (
+      SELECT content 
+      FROM messages 
+      WHERE user_id = m.user_id AND provider_id = ? 
+      ORDER BY created_at DESC LIMIT 1
+    ) AS last_message,
+    SUM(CASE WHEN m.read_flag = 0 AND m.sender = 'user' THEN 1 ELSE 0 END) AS unread_count
+FROM messages m
+JOIN users u ON u.user_id = m.user_id
+WHERE m.provider_id = ?
+GROUP BY m.user_id, u.name
+ORDER BY last_at DESC;
+`,
       [providerId, providerId]
     );
 
@@ -93,6 +104,7 @@ router.get("/conversations/provider/:providerId", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 
 
 module.exports = router;

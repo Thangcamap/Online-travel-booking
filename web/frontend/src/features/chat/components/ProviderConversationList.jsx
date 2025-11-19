@@ -13,7 +13,7 @@ export default function ProviderConversationList({ providerId, onSelect }) {
     });
 
     return () => socket.off("new_message");
-  }, []);
+  }, [providerId]);
 
   const loadConversations = async () => {
     const res = await axios.get(`/chat/conversations/provider/${providerId}`);
@@ -29,12 +29,14 @@ export default function ProviderConversationList({ providerId, onSelect }) {
       {list.map((item) => (
         <button
           key={item.user_id}
-          onClick={() => onSelect && onSelect(item)}
-          className="w-full text-left p-3 hover:bg-gray-50 cursor-pointer border-b flex justify-between"
+          onClick={() => onSelect?.(item)}
+          className="w-full text-left p-3 hover:bg-gray-50 cursor-pointer border-b flex justify-between items-center"
         >
           <div>
             <div className="font-semibold">{item.user_name}</div>
-            <div className="text-xs text-gray-500">{item.last_message}</div>
+            <div className="text-xs text-gray-500 truncate w-[180px]">
+              {item.last_message}
+            </div>
           </div>
 
           {item.unread_count > 0 && (
