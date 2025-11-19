@@ -16,13 +16,23 @@ function initSocket(server) {
       socket.join(`user_${userId}`);
       console.log(` User ${userId} joined room user_${userId}`);
     });
-        // 🟢 THÊM ĐOẠN NÀY
   socket.on("join_provider", (providerId) => {
     socket.join(`provider_${providerId}`);
-    // console.log(`✅ Provider ${providerId} joined room provider_${providerId}`);
+     console.log(` Provider ${providerId} joined room provider_${providerId}`);
   });
+
+      //  FIX: socket listener phải nằm ở đây
+    socket.on("send_message", (msg) => {
+      console.log(" Server nhận message:", msg);
+
+      io.to(`user_${msg.user_id}`).emit("new_message", msg);
+      io.to(`provider_${msg.provider_id}`).emit("new_message", msg);
+      console.log(` Broadcast đến user_${msg.user_id} & provider_${msg.provider_id}`);
+    });
+
+    
     socket.on("disconnect", () => {
-      // console.log(" Client disconnected:", socket.id);
+       console.log(" Client disconnected:", socket.id);
     });
   });
 }
@@ -47,7 +57,7 @@ function notifyProviderStatusChange(providerId, newStatus) {
       newStatus,
     });
 
-        // 🟡 Gửi broadcast cho các client khác (admin dashboard, user list, v.v.)
+        //  Gửi broadcast cho các client khác (admin dashboard, user list, v.v.)
     io.emit("provider_status_broadcast", {
       provider_id: providerId,
       newStatus,
@@ -55,6 +65,5 @@ function notifyProviderStatusChange(providerId, newStatus) {
     console.log(` Sent update to provider_${providerId}: ${newStatus}`);
   }
 }
-
 
 module.exports = { initSocket, notifyUserStatusChange, notifyProviderStatusChange , getIO: () => io,};

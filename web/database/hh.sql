@@ -121,6 +121,23 @@ CREATE TABLE `bookings` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `conversations`
+--
+
+DROP TABLE IF EXISTS `conversations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `conversations` (
+  `conversation_id` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `provider_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`conversation_id`),
+  UNIQUE KEY `user_id` (`user_id`,`provider_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `images`
 --
 
@@ -136,6 +153,34 @@ CREATE TABLE `images` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`image_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `messages`
+--
+
+DROP TABLE IF EXISTS `messages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `messages` (
+  `message_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tour_id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `provider_id` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `sender` enum('user','provider') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `read_flag` tinyint(1) DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `conversation_id` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`message_id`),
+  KEY `idx_tour_provider_user` (`tour_id`,`provider_id`,`user_id`),
+  KEY `fk_msg_user` (`user_id`),
+  KEY `fk_msg_provider` (`provider_id`),
+  KEY `idx_conversation` (`conversation_id`,`created_at`),
+  CONSTRAINT `fk_msg_provider` FOREIGN KEY (`provider_id`) REFERENCES `tour_providers` (`provider_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_msg_tour` FOREIGN KEY (`tour_id`) REFERENCES `tours` (`tour_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_msg_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -299,4 +344,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-11-18 22:00:55
+-- Dump completed on 2025-11-20  2:05:03

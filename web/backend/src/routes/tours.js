@@ -28,7 +28,7 @@ const checkProviderApproved = async (req, res, next) => {
 
   if (!providerId) {
     providerId = "prov_test001"; // fallback test
-    console.log("⚠️ provider_id fallback:", providerId);
+    console.log(" provider_id fallback:", providerId);
   }
 
   // Nếu là dev thì bỏ qua kiểm tra để test
@@ -51,21 +51,21 @@ const checkProviderApproved = async (req, res, next) => {
 
     const { approval_status, provider_status, user_status } = rows[0];
 
-    // ❌ User bị khóa
+    //  User bị khóa
     if (user_status !== "active")
       return res.status(403).json({
         success: false,
         message: "Tài khoản người dùng đã bị khóa hoặc tạm ngưng.",
       });
 
-    // ❌ Provider bị khóa
+    //  Provider bị khóa
     if (provider_status !== "active")
       return res.status(403).json({
         success: false,
         message: "Tài khoản nhà cung cấp đang bị khóa hoặc tạm ngưng.",
       });
 
-    // ❌ Provider chưa được duyệt
+    //  Provider chưa được duyệt
     if (approval_status !== "approved")
       return res.status(403).json({
         success: false,
@@ -81,23 +81,23 @@ const checkProviderApproved = async (req, res, next) => {
 };
 
 
-// --- 🟢 Upload ảnh (đặt TRƯỚC route có param) ---
+// ---  Upload ảnh (đặt TRƯỚC route có param) ---
 router.post("/:tour_id/upload-image", upload.single("image"), async (req, res) => {
   console.log("🚀 Bắt đầu xử lý upload ảnh tour...");
   console.log("📥 File nhận từ client:", req.file);
   console.log("📦 Body nhận từ client:", req.body);
 
 if (!req.file) {
-  console.log("⚠️ Không nhận được file nào từ phía client!");
+  console.log(" Không nhận được file nào từ phía client!");
 } else {
-  console.log("✅ Tên file gốc:", req.file.originalname);
-  console.log("✅ Lưu tạm ở:", req.file.path);
-  console.log("✅ Loại file:", req.file.mimetype);
+  console.log(" Tên file gốc:", req.file.originalname);
+  console.log(" Lưu tạm ở:", req.file.path);
+  console.log(" Loại file:", req.file.mimetype);
 }
 
   try {
     const { tour_id } = req.params;
-    console.log("🟢 Upload ảnh cho tour:", tour_id);
+    console.log(" Upload ảnh cho tour:", tour_id);
 
     if (!tour_id)
       return res
@@ -117,7 +117,7 @@ if (!req.file) {
       [imageId, String(tour_id), imageUrl]
     );
 
-    console.log("✅ Upload OK:", result);
+    console.log(" Upload OK:", result);
     res.json({ success: true, imageUrl });
   } catch (err) {
     console.error("❌ Upload image error:", err);
@@ -127,7 +127,7 @@ if (!req.file) {
   }
 });
 
-// --- 🟢 Tạo tour ---
+// ---  Tạo tour ---
 router.post("/", checkProviderApproved, async (req, res) => {
   try {
     const {
@@ -144,8 +144,8 @@ router.post("/", checkProviderApproved, async (req, res) => {
     const provider_id = req.provider_id;
     const tour_id = "tour_" + Date.now();
 
-    console.log("🟢 Dữ liệu nhận từ client:", req.body);
-    console.log("🟢 provider_id:", provider_id);
+    console.log(" Dữ liệu nhận từ client:", req.body);
+    console.log(" provider_id:", provider_id);
 
     if (!name || !price || !start_date || !end_date || !available_slots)
       return res.status(400).json({
@@ -171,18 +171,18 @@ router.post("/", checkProviderApproved, async (req, res) => {
       ]
     );
 
-    console.log("✅ Insert result:", insertResult);
+    console.log(" Insert result:", insertResult);
 
     const [rows] = await pool.query("SELECT * FROM tours WHERE tour_id = ?", [tour_id]);
-    console.log("📦 Kết quả SELECT:", rows);
+    console.log(" Kết quả SELECT:", rows);
 
     if (!rows || rows.length === 0) {
-      console.log("⚠️ Không tìm thấy tour vừa tạo!");
+      console.log(" Không tìm thấy tour vừa tạo!");
       return res.json({ success: true, message: "Tour created but not fetched." });
     }
 
     const newTour = rows[0];
-    console.log("✅ Tour vừa tạo:", newTour);
+    console.log(" Tour vừa tạo:", newTour);
 
     res.json({ success: true, tour: newTour });
   } catch (err) {
@@ -192,7 +192,7 @@ router.post("/", checkProviderApproved, async (req, res) => {
 });
 
 
-// --- 📋 Lấy danh sách tour theo provider ---
+// ---  Lấy danh sách tour theo provider ---
 router.get("/provider/:provider_id", checkProviderApproved, async (req, res) => {
 
   try {
@@ -214,7 +214,7 @@ router.get("/provider/:provider_id", checkProviderApproved, async (req, res) => 
         "SELECT day_number AS day, description AS plan FROM tour_itineraries WHERE tour_id=? ORDER BY day_number ASC",
         [tour.tour_id]
       );
-      tour.itinerary = itinerary; // ✅ Gắn thêm vào đối tượng tour
+      tour.itinerary = itinerary; //  Gắn thêm vào đối tượng tour
     }
     
 
@@ -227,7 +227,7 @@ router.get("/provider/:provider_id", checkProviderApproved, async (req, res) => 
   }
 });
 
-// --- ✏️ Cập nhật tour ---
+// ---  Cập nhật tour ---
 router.put("/:tour_id", checkProviderApproved, async (req, res) => {
   try {
     const { tour_id } = req.params;
@@ -259,7 +259,7 @@ router.put("/:tour_id", checkProviderApproved, async (req, res) => {
       ]
     );
 
-    res.json({ success: true, message: "✅ Tour updated successfully!" });
+    res.json({ success: true, message: " Tour updated successfully!" });
   } catch (err) {
     console.error("Update tour error:", err);
     res
@@ -268,7 +268,7 @@ router.put("/:tour_id", checkProviderApproved, async (req, res) => {
   }
 });
 
-// --- 🗑️ Xóa ảnh của tour ---
+// ---  Xóa ảnh của tour ---
 router.delete("/:tour_id/images", async (req, res) => {
   const { tour_id } = req.params;
 
@@ -300,7 +300,7 @@ router.delete("/:tour_id/images", async (req, res) => {
 });
 
 
-// --- 🗑️ Xóa tour ---
+// ---  Xóa tour ---
 router.delete("/:tour_id", checkProviderApproved, async (req, res) => {
   try {
     const { tour_id } = req.params;
@@ -318,7 +318,7 @@ router.delete("/:tour_id", checkProviderApproved, async (req, res) => {
       .json({ success: false, message: "Lỗi server khi xóa tour." });
   }
 });
-// 📥 Tạo mới lịch trình (khi tour mới tạo)
+//  Tạo mới lịch trình (khi tour mới tạo)
 router.post("/:tour_id/itinerary", async (req, res) => {
   const { tour_id } = req.params;
   const { itinerary } = req.body;
@@ -332,12 +332,12 @@ router.post("/:tour_id/itinerary", async (req, res) => {
     }
     res.json({ success: true, message: "Lưu lịch trình thành công!" });
   } catch (err) {
-    console.error("❌ Lỗi khi lưu lịch trình:", err);
+    console.error(" Lỗi khi lưu lịch trình:", err);
     res.status(500).json({ success: false, message: "Lỗi khi lưu lịch trình" });
   }
 });
 
-// --- 📖 Lấy lịch trình theo tour_id ---
+// ---  Lấy lịch trình theo tour_id ---
 router.get("/:tour_id/itinerary", async (req, res) => {
   const { tour_id } = req.params;
 
@@ -357,13 +357,13 @@ router.get("/:tour_id/itinerary", async (req, res) => {
 
     res.json({ success: true, itinerary: rows });
   } catch (err) {
-    console.error("❌ Lỗi khi lấy lịch trình:", err);
+    console.error(" Lỗi khi lấy lịch trình:", err);
     res.status(500).json({ success: false, message: "Lỗi khi lấy lịch trình." });
   }
 });
 
 
-// 📘 Cập nhật lịch trình (PUT)
+//  Cập nhật lịch trình (PUT)
 router.put("/:tour_id/itinerary", async (req, res) => {
   const { tour_id } = req.params;
   const { itinerary } = req.body;
@@ -382,11 +382,11 @@ router.put("/:tour_id/itinerary", async (req, res) => {
 
     res.json({ success: true, message: "Cập nhật lịch trình thành công!" });
   } catch (err) {
-    console.error("❌ Lỗi khi cập nhật lịch trình:", err);
+    console.error(" Lỗi khi cập nhật lịch trình:", err);
     res.status(500).json({ success: false, message: "Lỗi khi cập nhật lịch trình" });
   }
 });
-// --- 🟢 Lấy thông tin provider theo user_id ---
+// ---  Lấy thông tin provider theo user_id ---
 router.get("/provider/by-user/:user_id", async (req, res) => {
   try {
     const { user_id } = req.params;
@@ -402,12 +402,12 @@ router.get("/provider/by-user/:user_id", async (req, res) => {
 
     res.json({ success: true, exists: true, provider: rows[0] });
   } catch (error) {
-    console.error("❌ Error fetching provider by user:", error);
+    console.error(" Error fetching provider by user:", error);
     res.status(500).json({ success: false, message: "Lỗi server khi lấy provider." });
   }
 });
 
-// --- 🌍 Lấy danh sách tour công khai ---
+// ---  Lấy danh sách tour công khai ---
 router.get("/", async (req, res) => {
   try {
     const [tours] = await pool.query(`
@@ -430,18 +430,18 @@ router.get("/", async (req, res) => {
 
     res.json(tours);
   } catch (err) {
-    console.error("❌ Lỗi lấy danh sách tour công khai:", err);
+    console.error(" Lỗi lấy danh sách tour công khai:", err);
     res.status(500).json({ error: "Lỗi máy chủ" });
   }
 });
 
 
-// --- 🌍 Lấy chi tiết tour công khai theo tour_id ---
+// ---  Lấy chi tiết tour công khai theo tour_id ---
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    // 🟢 Lấy thông tin tour
+    //  Lấy thông tin tour
     const [rows] = await pool.query(`
       SELECT 
         t.tour_id,
@@ -467,14 +467,14 @@ router.get("/:id", async (req, res) => {
 
     const tour = rows[0];
 
-    // 🟢 Lấy toàn bộ ảnh của tour
+    //  Lấy toàn bộ ảnh của tour
     const [images] = await pool.query(
       `SELECT image_url FROM images WHERE entity_type='tour' AND entity_id=?`,
       [id]
     );
     tour.images = images.map(i => i.image_url);
 
-    // 🟢 Lịch trình
+    //  Lịch trình
     const [itinerary] = await pool.query(
       `SELECT day_number, title, description 
        FROM tour_itineraries 
@@ -531,7 +531,7 @@ router.get("/providers/:providerId/bookings", async (req, res) => {
 
     res.json({ success: true, bookings: rows });
   } catch (err) {
-    console.error("❌ Error fetching provider bookings:", err);
+    console.error(" Error fetching provider bookings:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });

@@ -8,18 +8,30 @@ export default function ChatWindow({ providerId, userId, userName }) {
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    if (!userId || !providerId) return;
+  if (providerId) {
+    socket.emit("join_provider", providerId);
+    console.log("Provider joined room provider_", providerId);
+  }
+}, [providerId]);
 
-    loadMessages();
 
-    socket.on("new_message", (msg) => {
-      if (msg.user_id === userId && msg.provider_id === providerId) {
-        setMessages((prev) => [...prev, msg]);
-      }
-    });
+useEffect(() => {
+  if (!userId || !providerId) return;
 
-    return () => socket.off("new_message");
-  }, [userId, providerId]);
+  loadMessages();
+
+  const handler = (msg) => {
+    console.log(" Provider received realtime:", msg);
+
+    if (msg.user_id === userId && msg.provider_id === providerId) {
+      setMessages((prev) => [...prev, msg]);
+    }
+  };
+
+  socket.on("new_message", handler);
+  return () => socket.off("new_message", handler);
+}, [userId, providerId]);
+
 
   const loadMessages = async () => {
     const res = await getChatHistory({ user_id: userId, provider_id: providerId });
@@ -29,7 +41,7 @@ export default function ChatWindow({ providerId, userId, userName }) {
   const handleSend = async () => {
     if (!message.trim()) return;
 
-    // 🧠 Lấy tour từ tin nhắn cuối
+    //  Lấy tour từ tin nhắn cuối
     const lastMessage = messages[messages.length - 1];
     const tourId = lastMessage?.tour_id;
 
@@ -44,8 +56,7 @@ export default function ChatWindow({ providerId, userId, userName }) {
       tourId,
       message
     });
-
-    setMessages((prev) => [...prev, res]);
+    //setMessages((prev) => [...prev, res]);
     setMessage("");
   };
 
@@ -58,7 +69,7 @@ export default function ChatWindow({ providerId, userId, userName }) {
       
       {/* Header */}
       <div className="p-4 border-b font-semibold bg-white">
-        💬 Đang trò chuyện với: {userName}
+         Đang trò chuyện với: {userName}
       </div>
 
       {/* Chat messages */}

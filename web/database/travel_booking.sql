@@ -187,6 +187,31 @@ CREATE TABLE tour_itineraries (
   FOREIGN KEY (tour_id) REFERENCES tours(tour_id) ON DELETE CASCADE
 );
 
+CREATE TABLE conversations (
+  conversation_id VARCHAR(50) PRIMARY KEY,
+  user_id VARCHAR(32) NOT NULL,
+  provider_id VARCHAR(32) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, provider_id) -- đảm bảo chỉ 1 conversation
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  message_id VARCHAR(32) COLLATE utf8mb4_unicode_ci NOT NULL PRIMARY KEY,
+  tour_id VARCHAR(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  user_id VARCHAR(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  provider_id VARCHAR(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  sender ENUM('user','provider') COLLATE utf8mb4_unicode_ci NOT NULL,
+  content TEXT COLLATE utf8mb4_unicode_ci NOT NULL,
+  read_flag TINYINT(1) DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  
+  INDEX idx_tour_provider_user (tour_id, provider_id, user_id),
+
+  CONSTRAINT fk_msg_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  CONSTRAINT fk_msg_provider FOREIGN KEY (provider_id) REFERENCES tour_providers(provider_id) ON DELETE CASCADE,
+  CONSTRAINT fk_msg_tour FOREIGN KEY (tour_id) REFERENCES tours(tour_id) ON DELETE CASCADE
+);
+
 
 -- Trigger tự động sinh booking_id
 DROP TRIGGER IF EXISTS before_insert_booking;

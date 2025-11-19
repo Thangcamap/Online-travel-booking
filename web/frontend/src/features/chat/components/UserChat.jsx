@@ -12,7 +12,7 @@ export default function UserChat({ tour_id, user_id, provider_id }) {
 
     loadMessages();
 
-    socket.emit("join_room", `user_${user_id}`);
+    socket.emit("join_user", user_id);
 
     socket.on("new_message", (msg) => {
       if (msg.user_id === user_id && msg.provider_id === provider_id) {
@@ -34,7 +34,7 @@ export default function UserChat({ tour_id, user_id, provider_id }) {
   const sendMessage = async () => {
     if (!content.trim()) return;
 
-    // 🧠 Lấy tour giống provider (từ tin nhắn cuối)
+    //  Lấy tour giống provider (từ tin nhắn cuối)
     const last = messages[messages.length - 1];
     const tourId = last?.tour_id ?? tour_id;
 
@@ -51,7 +51,6 @@ export default function UserChat({ tour_id, user_id, provider_id }) {
       content
     });
 
-    setMessages((prev) => [...prev, res.data.message]);
     setContent("");
   };
 
@@ -64,7 +63,7 @@ export default function UserChat({ tour_id, user_id, provider_id }) {
 
       {/* Header */}
       <div className="p-3 border-b font-semibold bg-white text-gray-800">
-        🧳 Trò chuyện với nhà cung cấp
+         Trò chuyện với nhà cung cấp
       </div>
 
       {/* Message List */}
@@ -72,7 +71,7 @@ export default function UserChat({ tour_id, user_id, provider_id }) {
         {messages.map((msg) => (
           <div key={msg.message_id} className="mb-2">
 
-            {/* 🔥 Hiển thị tour giống Provider */}
+            {/*  Hiển thị tour giống Provider */}
             {msg.tour_name && (
               <div className="text-xs text-gray-500 mb-1">
                 🏷 Tour: {msg.tour_name}
