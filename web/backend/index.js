@@ -63,6 +63,9 @@ app.use("/api/bookings", bookingsRoutes);
 
 const paymentsRoutes = require("./src/routes/payments");
 
+const chatRoutes = require("./src/routes/chat");
+app.use("/api/chat", chatRoutes);
+
 // ✅ Thêm middleware riêng cho payments (để xử lý ảnh đúng URL)
 app.use("/api/payments", (req, res, next) => {
   req.BASE_URL = process.env.BASE_URL || "http://localhost:5000"; // thêm BASE_URL

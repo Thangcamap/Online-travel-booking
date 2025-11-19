@@ -57,4 +57,4 @@ function notifyProviderStatusChange(providerId, newStatus) {
 }
 
 
-module.exports = { initSocket, notifyUserStatusChange, notifyProviderStatusChange };
+module.exports = { initSocket, notifyUserStatusChange, notifyProviderStatusChange , getIO: () => io,};

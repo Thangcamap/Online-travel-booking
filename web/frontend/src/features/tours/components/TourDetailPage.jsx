@@ -10,9 +10,9 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
-import { Navigation, Pagination } from "swiper/modules";
-import { Dialog } from "@headlessui/react";
-import { X } from "lucide-react";
+import UserChat from "@/features/chat/components/UserChat";
+
+
 
 
 const API_BASE = "http://localhost:5000/api";
@@ -27,6 +27,8 @@ const TourDetailPage = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [activeTab, setActiveTab] = useState("include");
   const [openGallery, setOpenGallery] = useState(false);
+  const [openChat, setOpenChat] = useState(false);
+
 
 
   const { data: tour, isLoading, error } = useQuery({
@@ -130,7 +132,6 @@ const TourDetailPage = () => {
     {/* 🔹 NAVBAR */}
     <Navbar />
     <div className="pt-6"></div>
-
 
     {/* 🔹 Tên Tour */}
 <div className="max-w-6xl mx-auto px-6 mt-4">
@@ -332,6 +333,14 @@ const TourDetailPage = () => {
           >
             Đặt Tour Ngay
           </button>
+          {authUser && (
+  <button
+    onClick={() => setOpenChat(true)}
+    className="w-full bg-white border border-orange-500 text-orange-600 py-3 mt-3 rounded-lg font-semibold hover:bg-orange-50 transition"
+  >
+    💬 Chat với nhà cung cấp
+  </button>
+)}
         </div>
       </div>
 
@@ -362,6 +371,30 @@ const TourDetailPage = () => {
       <div className="text-center text-sm text-gray-500 py-8">
         © {new Date().getFullYear()} AI-TRAVEL. All rights reserved.
       </div>
+
+{openChat && (
+  <div className="fixed bottom-20 right-6 bg-white rounded-xl shadow-lg w-96 h-[450px] border z-50 flex flex-col">
+    
+    {/* Header */}
+    <div className="bg-orange-500 p-3 text-white flex justify-between items-center rounded-t-xl">
+      <span className="font-semibold">💬 Chat với nhà cung cấp</span>
+      <button onClick={() => setOpenChat(false)} className="font-bold text-lg">
+        ✖
+      </button>
+    </div>
+
+    {/* Chat Component */}
+    <div className="flex-1 overflow-hidden">
+<UserChat 
+  tour_id={tourId}
+  user_id={authUser?.user_id}
+  provider_id={tour?.provider_id}
+/>
+
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

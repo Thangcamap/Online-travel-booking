@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Home, LogOut, Info, BarChart3, List, Plus, TicketCheck  } from "lucide-react";
+import { Home, LogOut, Info, BarChart3, List, Plus, TicketCheck ,MessageCircle  } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import StatCard from "../components/StatCard";
 import TourManagement from "../components/TourManagement";
@@ -13,12 +13,21 @@ import ProviderBookings from "../components/ProviderBookings";
 import { socket } from "@/lib/socket";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import ProviderConversationList from "@/features/chat/components/ProviderConversationList";
+import ChatWindow from "@/features/chat/components/ChatWindow";
+
+
 
 export default function ProviderDashboard() {
   const [provider, setProvider] = useState(null);
   const [tours, setTours] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("info");
+  const [showReply, setShowReply] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [replyData, setReplyData] = useState(null);
+
+
 
   const [accessError, setAccessError] = useState("");
 
@@ -256,6 +265,7 @@ socket.on("provider_status_changed", async (data) => {
               { key: "manage", label: "Quản lý tour", icon: <List size={18} /> },
               { key: "add", label: "Thêm tour", icon: <Plus size={18} /> },
               { key: "booking", label: "Quản lý đặt tour", icon: <TicketCheck size={18} /> },
+              { key: "messages", label: "Tin nhắn", icon: <MessageCircle size={18} /> },
               { key: "stats", label: "Thống kê", icon: <BarChart3 size={18} /> },
             ].map((item) => (
               <button
@@ -318,6 +328,42 @@ socket.on("provider_status_changed", async (data) => {
               <ProviderBookings providerId={providerId} />
             </div>
         )}
+{activeTab === "messages" && (
+  <div className="flex h-[600px] border rounded-lg bg-white overflow-hidden shadow-md">
+    
+    {/* 📌 Sidebar: Danh sách cuộc hội thoại */}
+    <div className="w-72 border-r bg-gray-50">
+      <ProviderConversationList
+        providerId={providerId}
+        onSelect={(item) => {
+          setReplyData({
+            user_id: item.user_id,
+            tour_id: item.tour_id,
+            user_name: item.user_name
+          });
+        }}
+      />
+    </div>
+
+    {/* 📌 Khu vực chat */}
+    <div className="flex-1">
+      {replyData ? (
+        <ChatWindow
+          providerId={providerId}
+          userId={replyData.user_id}
+          tourId={replyData.tour_id}
+          userName={replyData.user_name}
+        />
+      ) : (
+        <div className="flex items-center justify-center h-full text-gray-400">
+          👈 Chọn 1 cuộc trò chuyện
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
 
         {activeTab === "stats" && (
           <div>

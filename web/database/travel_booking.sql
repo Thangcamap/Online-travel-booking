@@ -66,14 +66,6 @@ CREATE TABLE tours (
   end_date DATE,
   available_slots INT DEFAULT 0,              --  số chỗ còn lại
   available BOOLEAN DEFAULT TRUE,
-  -- 🆕 Các cột chi tiết mới bổ sung
-  schedule_info TEXT NULL,                    -- Lịch trình tổng quan (JSON)
-  experience_info TEXT NULL,                  -- Mô tả trải nghiệm chính
-  package_info TEXT NULL,                     -- Gói dịch vụ bao gồm
-  guide_info TEXT NULL,                       -- Thông tin hướng dẫn viên
-  note_info TEXT NULL,                        -- Lưu ý khi đi tour
-  surcharge_info TEXT NULL,                   -- Phụ thu, chi phí thêm
-
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_tour_provider FOREIGN KEY (provider_id) REFERENCES tour_providers(provider_id) ON DELETE CASCADE
@@ -96,7 +88,7 @@ DROP TABLE IF EXISTS bookings;
 CREATE TABLE bookings (
   booking_id VARCHAR(16) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL,
-  tour_id VARCHAR(16) NOT NULL,
+  tour_id VARCHAR(32) NOT NULL,
 
   -- =============================
   -- Thông tin snapshot của tour tại thời điểm đặt
@@ -166,7 +158,7 @@ CREATE TABLE payments (
 CREATE TABLE reviews (
   review_id VARCHAR(16) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL,
-  tour_id VARCHAR(16) NOT NULL,
+  tour_id VARCHAR(32) NOT NULL,
   rating TINYINT,
   comment TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -175,15 +167,6 @@ CREATE TABLE reviews (
   CONSTRAINT fk_review_tour FOREIGN KEY (tour_id) REFERENCES tours(tour_id) ON DELETE CASCADE
 );
 
--- Bảng gợi ý từ AI
-CREATE TABLE ai_recommendations (
-  rec_id VARCHAR(16) PRIMARY KEY,
-  user_id VARCHAR(16) NOT NULL,
-  preferences TEXT,
-  suggested_tours TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_ai_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
 CREATE TABLE ai_messages (
   message_id VARCHAR(36) PRIMARY KEY,
   user_id VARCHAR(16) NOT NULL,

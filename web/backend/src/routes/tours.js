@@ -445,6 +445,7 @@ router.get("/:id", async (req, res) => {
     const [rows] = await pool.query(`
       SELECT 
         t.tour_id,
+        t.provider_id,
         t.name,
         t.description,
         t.price,

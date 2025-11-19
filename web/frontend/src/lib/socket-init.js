@@ -58,4 +58,19 @@ export const initUserSocket = () => {
       }
     }
   });
+
+  // --- Lắng nghe tin nhắn mới ---
+socket.removeAllListeners("new_message");
+socket.on("new_message", (message) => {
+  console.log("📩 Tin nhắn mới:", message);
+
+  // Nếu user hiện đang không mở khung chat thì thông báo
+  if (!window.location.pathname.includes("/chat")) {
+    toast.info(`📨 Tin nhắn mới từ ${message.sender === 'provider' ? "Nhà cung cấp" : "Bạn"}`);
+  }
+
+  // Gửi sự kiện global để UI chat cập nhật
+  window.dispatchEvent(new CustomEvent("chat_message_received", { detail: message }));
+});
+
 };
