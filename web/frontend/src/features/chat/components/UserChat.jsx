@@ -36,7 +36,7 @@ export default function UserChat({ tour_id, user_id, provider_id }) {
 
     //  Lấy tour giống provider (từ tin nhắn cuối)
     const last = messages[messages.length - 1];
-    const tourId = last?.tour_id ?? tour_id;
+    const tourId = tour_id || last?.tour_id;
 
     if (!tourId) {
       alert("⚠ Không xác định được tour để chat.");
@@ -61,11 +61,6 @@ export default function UserChat({ tour_id, user_id, provider_id }) {
   return (
     <div className="flex flex-col h-[400px] border rounded-lg">
 
-      {/* Header */}
-      <div className="p-3 border-b font-semibold bg-white text-gray-800">
-         Trò chuyện với nhà cung cấp
-      </div>
-
       {/* Message List */}
       <div className="flex-1 p-3 overflow-y-auto bg-gray-100">
         {messages.map((msg) => (
@@ -74,7 +69,7 @@ export default function UserChat({ tour_id, user_id, provider_id }) {
             {/*  Hiển thị tour giống Provider */}
             {msg.tour_name && (
               <div className="text-xs text-gray-500 mb-1">
-                🏷 Tour: {msg.tour_name}
+                 Tour: {msg.tour_name}
               </div>
             )}
 

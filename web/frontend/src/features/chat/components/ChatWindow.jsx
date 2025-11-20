@@ -80,18 +80,24 @@ useEffect(() => {
             {/* Hiển thị tên Tour giống Shopee */}
             {msg.tour_name && (
               <div className="text-xs text-gray-500 mb-1">
-                🏷 Tour: {msg.tour_name}
+                 Tour: {msg.tour_name}
               </div>
             )}
 
             <div
               className={`max-w-[75%] px-3 py-2 rounded-lg ${
                 msg.sender === "provider"
-                  ? "bg-blue-600 text-white ml-auto text-right"
-                  : "bg-gray-300 text-black"
+                  ? "bg-orange-500 text-white ml-auto text-right"
+                  : "bg-white border text-black"
               }`}
             >
               {msg.content}
+                <div className="text-[10px] opacity-70 mt-1">
+                {new Date(msg.created_at).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit"
+                })}
+              </div>
             </div>
           </div>
         ))}
@@ -108,7 +114,7 @@ useEffect(() => {
         />
         <button
           onClick={handleSend}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+          className="px-4 py-2 bg-orange-500 text-white rounded-lg"
         >
           Gửi
         </button>

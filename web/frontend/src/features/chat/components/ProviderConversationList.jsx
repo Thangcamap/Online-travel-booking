@@ -23,7 +23,7 @@ export default function ProviderConversationList({ providerId, onSelect }) {
   return (
     <div className="w-full border h-full overflow-y-auto rounded">
       <h2 className="font-bold text-lg p-3 border-b bg-gray-100">
-        Tin nhắn khách gửi
+        Tin nhắn
       </h2>
 
       {list.map((item) => (

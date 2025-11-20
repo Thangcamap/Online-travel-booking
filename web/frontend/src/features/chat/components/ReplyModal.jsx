@@ -50,7 +50,7 @@ export default function ReplyModal({ providerId, tourId, userId, userName, onClo
       <div className="bg-white p-5 w-96 rounded shadow-lg">
         <h3 className="font-bold text-lg mb-3">Trả lời khách: {userName}</h3>
 
-        {/* 🚀 Hiển thị lịch sử chat */}
+        {/*  Hiển thị lịch sử chat */}
         <div className="border p-3 h-64 overflow-y-auto rounded bg-gray-50 mb-3">
           {messages.map((msg) => (
             <div

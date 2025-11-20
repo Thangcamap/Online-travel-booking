@@ -338,7 +338,7 @@ const TourDetailPage = () => {
     onClick={() => setOpenChat(true)}
     className="w-full bg-white border border-orange-500 text-orange-600 py-3 mt-3 rounded-lg font-semibold hover:bg-orange-50 transition"
   >
-    💬 Chat với nhà cung cấp
+    💬 Chat với nhà cung cấp tour
   </button>
 )}
         </div>
@@ -377,7 +377,7 @@ const TourDetailPage = () => {
     
     {/* Header */}
     <div className="bg-orange-500 p-3 text-white flex justify-between items-center rounded-t-xl">
-      <span className="font-semibold">💬 Chat với nhà cung cấp</span>
+      <span className="font-semibold">💬 Chat với nhà cung cấp tour</span>
       <button onClick={() => setOpenChat(false)} className="font-bold text-lg">
         ✖
       </button>
