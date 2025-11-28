@@ -4,7 +4,6 @@ const { pool } = require("../../config/mysql");
 const { notifyUserStatusChange, notifyProviderStatusChange } = require("../../socket");
 
 
-
 // ✅ Lấy danh sách provider chờ duyệt
 router.get("/providers/pending", async (req, res) => {
   try {
