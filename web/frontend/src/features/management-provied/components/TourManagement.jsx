@@ -19,7 +19,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import axios from "axios";
-import { deleteTour, updateTour, updateTourItinerary } from "../api/tours-api";
+import { deleteTour, updateTour, updateTourItinerary ,deleteTourImage } from "../api/tours-api";
+
 
 export default function TourManagement({ providerId, tours = [], refresh }) {
   const [tourImages, setTourImages] = useState({});
@@ -152,26 +153,44 @@ export default function TourManagement({ providerId, tours = [], refresh }) {
     }
   };
 
-  const handleRemoveOldImage = async (index) => {
-    if (!editingTour) return;
-    const tourId = editingTour.tour_id;
-    const current = tourImages[tourId] || [];
-    const toRemove = current[index];
-    if (!window.confirm("Xác nhận xóa ảnh?")) return;
+const handleRemoveOldImage = async (index) => {
+  if (!editingTour) return;
+  const tourId = editingTour.tour_id;
+  const current = tourImages[tourId] || [];
+  const toRemove = current[index];
+  
+  if (!toRemove) {
+    alert("Không tìm thấy ảnh");
+    return;
+  }
 
-    try {
-      await axios.delete(`${baseURL}/api/tours/${tourId}/images`, {
-        data: { image_url: toRemove.image_url || toRemove },
-      });
-      setTourImages((prev) => ({
-        ...prev,
-        [tourId]: prev[tourId].filter((_, i) => i !== index),
-      }));
-    } catch (err) {
-      console.error(err);
-      alert("Xóa ảnh thất bại");
+  console.log("Image to remove:", toRemove);
+  
+  if (!window.confirm("Xác nhận xóa ảnh?")) return;
+
+  try {
+    const imageId = toRemove.image_id;
+    
+    if (!imageId) {
+      console.error("Missing image_id:", toRemove);
+      alert("❌ Không tìm thấy ID ảnh. Vui lòng refresh trang.");
+      return;
     }
-  };
+    
+    // ✅ Pass both tourId and imageId
+    await deleteTourImage(tourId, imageId);
+    
+    setTourImages((prev) => ({
+      ...prev,
+      [tourId]: prev[tourId].filter((_, i) => i !== index),
+    }));
+    
+    alert("✅ Xóa ảnh thành công!");
+  } catch (err) {
+    console.error("Delete error:", err);
+    alert("❌ Xóa ảnh thất bại: " + (err.response?.data?.message || err.message));
+  }
+};
 
   const getImageUrls = (tourId) => {
     const images = tourImages[tourId];

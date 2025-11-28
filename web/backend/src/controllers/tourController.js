@@ -78,7 +78,7 @@ exports.getToursByProvider = async (req, res) => {
 
     for (const tour of tours) {
       const [imgs] = await pool.query(
-        "SELECT image_url FROM images WHERE entity_type='tour' AND entity_id=?",
+       "SELECT image_id, image_url FROM images WHERE entity_type='tour' AND entity_id=?",
         [tour.tour_id]
       );
       tour.images = imgs;
@@ -300,3 +300,60 @@ exports.updateBookingStatus = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+exports.deleteImage = async (req, res) => {
+  try {
+    const { tour_id, image_id } = req.params;
+
+    if (!image_id) {
+      return res.status(400).json({ success: false, message: "Missing image_id" });
+    }
+
+    // Lấy file name từ DB
+    const [rows] = await pool.query(
+      "SELECT image_url FROM images WHERE image_id=? AND entity_id=? AND entity_type='tour'",
+      [image_id, tour_id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "Image not found" });
+    }
+
+    const imageUrl = rows[0].image_url;
+    const fileName = imageUrl.split("/").pop();
+    const filePath = `uploads/tours/${fileName}`;
+
+    // Xóa file
+    const fs = require("fs");
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    // Xóa DB record
+    await pool.query(
+      "DELETE FROM images WHERE image_id=? AND entity_type='tour'",
+      [image_id]
+    );
+
+    res.json({ success: true, message: "Image deleted" });
+
+  } catch (err) {
+    console.error("Delete image error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+exports.getTourImages = async (req, res) => {
+  try {
+    const { tour_id } = req.params;
+
+    const [rows] = await pool.query(
+      "SELECT image_id, image_url FROM images WHERE entity_type='tour' AND entity_id=?",
+      [tour_id]
+    );
+
+    res.json({ success: true, images: rows });
+
+  } catch (err) {
+    console.error("Get images error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+

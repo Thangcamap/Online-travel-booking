@@ -13,6 +13,8 @@ router.post("/", checkProviderApproved, tour.createTour);
 router.get("/provider/:provider_id", checkProviderApproved, tour.getToursByProvider);
 router.put("/:tour_id", checkProviderApproved, tour.updateTour);
 router.delete("/:tour_id", checkProviderApproved, tour.deleteTour);
+router.delete("/:tour_id/images/:image_id", tour.deleteImage);
+router.get("/:tour_id/images", tour.getTourImages);
 
 // Itinerary
 router.post("/:tour_id/itinerary", tour.createItinerary);

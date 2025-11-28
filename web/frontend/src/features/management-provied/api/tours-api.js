@@ -36,9 +36,10 @@ export const getTourImages = (tourId) => {
 };
 
 // 🟢 Xóa ảnh của tour
-export const deleteTourImage = (imageId) => {
-  if (!imageId) throw new Error("Thiếu imageId khi gọi deleteTourImage");
-  return axios.delete(`/images/${imageId}`);
+// 🟢 Xóa ảnh của tour
+export const deleteTourImage = (tourId, imageId) => {
+  if (!tourId || !imageId) throw new Error("Thiếu tourId hoặc imageId");
+  return axios.delete(`/tours/${tourId}/images/${imageId}`);
 };
 
 // 🟢 Tạo mới lịch trình tour
