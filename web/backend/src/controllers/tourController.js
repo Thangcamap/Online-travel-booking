@@ -1,4 +1,5 @@
-const { pool } = require("../../config/mysql");
+const tourModel = require("../models/tourModel");
+const fs = require("fs");
 
 // ======================== UPLOAD IMAGE ==========================
 exports.uploadImage = async (req, res) => {
@@ -12,14 +13,10 @@ exports.uploadImage = async (req, res) => {
       return res.status(400).json({ success: false, message: "No image provided" });
 
     const imageUrl = `${req.protocol}://${req.get("host")}/uploads/tours/${req.file.filename}`;
-    const imageId = "img_" + Date.now();
+    
+    const result = await tourModel.insertImage(tour_id, imageUrl);
 
-    await pool.query(
-      "INSERT INTO images (image_id, entity_type, entity_id, image_url) VALUES (?, 'tour', ?, ?)",
-      [imageId, String(tour_id), imageUrl]
-    );
-
-    res.json({ success: true, imageUrl });
+    res.json({ success: true, imageUrl: result.imageUrl });
 
   } catch (err) {
     console.error("Upload image error:", err);
@@ -36,7 +33,6 @@ exports.createTour = async (req, res) => {
     } = req.body;
 
     const provider_id = req.provider_id;
-    const tour_id = "tour_" + Date.now();
 
     if (!name || !price || !start_date || !end_date || !available_slots) {
       return res.status(400).json({
@@ -45,20 +41,12 @@ exports.createTour = async (req, res) => {
       });
     }
 
-    await pool.query(
-      `INSERT INTO tours (tour_id, provider_id, name, description, price, currency,
-        start_date, end_date, available_slots, available)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        tour_id, provider_id, name, description || "",
-        price, currency || "VND", start_date, end_date,
-        available_slots, available ?? true
-      ]
-    );
+    const tour = await tourModel.createTourRecord(provider_id, {
+      name, description, price, currency,
+      start_date, end_date, available_slots, available
+    });
 
-    const [rows] = await pool.query("SELECT * FROM tours WHERE tour_id = ?", [tour_id]);
-
-    res.json({ success: true, tour: rows[0] });
+    res.json({ success: true, tour });
 
   } catch (err) {
     console.error("Create tour error:", err);
@@ -71,29 +59,12 @@ exports.getToursByProvider = async (req, res) => {
   try {
     const { provider_id } = req.params;
 
-    const [tours] = await pool.query(
-      "SELECT * FROM tours WHERE provider_id = ? ORDER BY created_at DESC",
-      [provider_id]
-    );
-
-    for (const tour of tours) {
-      const [imgs] = await pool.query(
-       "SELECT image_id, image_url FROM images WHERE entity_type='tour' AND entity_id=?",
-        [tour.tour_id]
-      );
-      tour.images = imgs;
-
-      const [itinerary] = await pool.query(
-        "SELECT day_number AS day, description AS plan FROM tour_itineraries WHERE tour_id=? ORDER BY day_number ASC",
-        [tour.tour_id]
-      );
-
-      tour.itinerary = itinerary;
-    }
+    const tours = await tourModel.getToursByProviderId(provider_id);
 
     res.json({ success: true, tours });
 
   } catch (err) {
+    console.error("Get tours error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -107,18 +78,15 @@ exports.updateTour = async (req, res) => {
       start_date, end_date, available_slots, available
     } = req.body;
 
-    await pool.query(
-      `UPDATE tours SET name=?, description=?, price=?, currency=?, 
-       start_date=?, end_date=?, available_slots=?, available=? WHERE tour_id=?`,
-      [
-        name, description || "", price, currency || "VND",
-        start_date, end_date, available_slots, available ?? true, tour_id
-      ]
-    );
+    await tourModel.updateTourRecord(tour_id, {
+      name, description, price, currency,
+      start_date, end_date, available_slots, available
+    });
 
     res.json({ success: true, message: "Tour updated" });
 
   } catch (err) {
+    console.error("Update tour error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -128,12 +96,12 @@ exports.deleteTour = async (req, res) => {
   try {
     const { tour_id } = req.params;
 
-    await pool.query("DELETE FROM images WHERE entity_type='tour' AND entity_id=?", [tour_id]);
-    await pool.query("DELETE FROM tours WHERE tour_id=?", [tour_id]);
+    await tourModel.deleteTourRecord(tour_id);
 
     res.json({ success: true, message: "Tour deleted" });
 
   } catch (err) {
+    console.error("Delete tour error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -144,16 +112,12 @@ exports.createItinerary = async (req, res) => {
     const { tour_id } = req.params;
     const { itinerary } = req.body;
 
-    for (const item of itinerary) {
-      await pool.query(
-        "INSERT INTO tour_itineraries (tour_id, day_number, title, description) VALUES (?, ?, ?, ?)",
-        [tour_id, item.day_number, item.title || "", item.description || ""]
-      );
-    }
+    await tourModel.createItineraryRecord(tour_id, itinerary);
 
     res.json({ success: true, message: "Lưu lịch trình thành công!" });
 
   } catch (err) {
+    console.error("Create itinerary error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -162,14 +126,12 @@ exports.getItinerary = async (req, res) => {
   try {
     const { tour_id } = req.params;
 
-    const [rows] = await pool.query(
-      "SELECT day_number, title, description FROM tour_itineraries WHERE tour_id = ? ORDER BY day_number ASC",
-      [tour_id]
-    );
+    const itinerary = await tourModel.getItineraryRecord(tour_id);
 
-    res.json({ success: true, itinerary: rows });
+    res.json({ success: true, itinerary });
 
   } catch (err) {
+    console.error("Get itinerary error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -179,18 +141,12 @@ exports.updateItinerary = async (req, res) => {
     const { tour_id } = req.params;
     const { itinerary } = req.body;
 
-    await pool.query("DELETE FROM tour_itineraries WHERE tour_id = ?", [tour_id]);
-
-    for (const item of itinerary) {
-      await pool.query(
-        "INSERT INTO tour_itineraries (tour_id, day_number, title, description) VALUES (?, ?, ?, ?)",
-        [tour_id, item.day_number, item.title || "", item.description || ""]
-      );
-    }
+    await tourModel.updateItineraryRecord(tour_id, itinerary);
 
     res.json({ success: true, message: "Cập nhật lịch trình thành công!" });
 
   } catch (err) {
+    console.error("Update itinerary error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -198,19 +154,11 @@ exports.updateItinerary = async (req, res) => {
 // ======================== PUBLIC LIST / DETAIL ==========================
 exports.getPublicTours = async (req, res) => {
   try {
-    const [tours] = await pool.query(`
-      SELECT 
-        t.tour_id, t.name, t.description, t.price, t.currency,
-        t.start_date, t.end_date, i.image_url
-      FROM tours t
-      LEFT JOIN images i ON i.entity_id = t.tour_id AND i.entity_type = 'tour'
-      WHERE t.available = 1
-      ORDER BY t.created_at DESC
-    `);
-
+    const tours = await tourModel.getPublicToursRecord();
     res.json(tours);
 
   } catch (err) {
+    console.error("Get public tours error:", err);
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -219,31 +167,15 @@ exports.getPublicTourDetail = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [rows] = await pool.query(
-      `SELECT * FROM tours WHERE tour_id = ? LIMIT 1`,
-      [id]
-    );
+    const tour = await tourModel.getPublicTourDetailRecord(id);
 
-    if (!rows.length)
+    if (!tour)
       return res.status(404).json({ error: "Tour not found" });
-
-    const tour = rows[0];
-
-    const [images] = await pool.query(
-      `SELECT image_url FROM images WHERE entity_type='tour' AND entity_id=?`,
-      [id]
-    );
-    tour.images = images.map(i => i.image_url);
-
-    const [itinerary] = await pool.query(
-      `SELECT day_number, title, description FROM tour_itineraries WHERE tour_id = ? ORDER BY day_number ASC`,
-      [id]
-    );
-    tour.itineraries = itinerary;
 
     res.json(tour);
 
   } catch (err) {
+    console.error("Get public tour detail error:", err);
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -253,26 +185,12 @@ exports.getProviderBookings = async (req, res) => {
   try {
     const { providerId } = req.params;
 
-    const [rows] = await pool.query(
-      `SELECT 
-        b.booking_id, b.quantity, b.total_price, b.status AS booking_status,
-        b.booking_date, b.check_in_time,
-        u.name AS user_name, u.email, u.phone_number,
-        t.name AS tour_name, t.tour_id,
-        p.payment_id, p.method, p.amount, p.status AS payment_status, p.payment_image
-      FROM bookings b
-      INNER JOIN users u ON b.user_id = u.user_id
-      INNER JOIN tours t ON b.tour_id = t.tour_id
-      INNER JOIN payments p ON p.booking_id = b.booking_id
-      WHERE t.provider_id = ?
-      AND p.status = 'paid'
-      ORDER BY b.created_at DESC`,
-      [providerId]
-    );
+    const bookings = await tourModel.getProviderBookingsRecord(providerId);
 
-    res.json({ success: true, bookings: rows });
+    res.json({ success: true, bookings });
 
   } catch (err) {
+    console.error("Get provider bookings error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -286,10 +204,7 @@ exports.updateBookingStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid status" });
     }
 
-    const [result] = await pool.query(
-      `UPDATE bookings SET status=?, updated_at=NOW() WHERE booking_id=?`,
-      [status, booking_id]
-    );
+    const result = await tourModel.updateBookingStatusRecord(booking_id, status);
 
     if (result.affectedRows === 0)
       return res.json({ success: false, message: "Booking not found" });
@@ -297,10 +212,12 @@ exports.updateBookingStatus = async (req, res) => {
     res.json({ success: true, message: "Booking updated" });
 
   } catch (err) {
+    console.error("Update booking status error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
+// ======================== DELETE IMAGE ==========================
 exports.deleteImage = async (req, res) => {
   try {
     const { tour_id, image_id } = req.params;
@@ -309,29 +226,20 @@ exports.deleteImage = async (req, res) => {
       return res.status(400).json({ success: false, message: "Missing image_id" });
     }
 
-    // Lấy file name từ DB
-    const [rows] = await pool.query(
-      "SELECT image_url FROM images WHERE image_id=? AND entity_id=? AND entity_type='tour'",
-      [image_id, tour_id]
-    );
+    const image = await tourModel.getImageRecord(image_id, tour_id);
 
-    if (!rows.length) {
+    if (!image) {
       return res.status(404).json({ success: false, message: "Image not found" });
     }
 
-    const imageUrl = rows[0].image_url;
-    const fileName = imageUrl.split("/").pop();
+    const fileName = image.image_url.split("/").pop();
     const filePath = `uploads/tours/${fileName}`;
 
     // Xóa file
-    const fs = require("fs");
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
     // Xóa DB record
-    await pool.query(
-      "DELETE FROM images WHERE image_id=? AND entity_type='tour'",
-      [image_id]
-    );
+    await tourModel.deleteImageRecord(image_id);
 
     res.json({ success: true, message: "Image deleted" });
 
@@ -340,20 +248,18 @@ exports.deleteImage = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// ======================== GET TOUR IMAGES ==========================
 exports.getTourImages = async (req, res) => {
   try {
     const { tour_id } = req.params;
 
-    const [rows] = await pool.query(
-      "SELECT image_id, image_url FROM images WHERE entity_type='tour' AND entity_id=?",
-      [tour_id]
-    );
+    const images = await tourModel.getTourImagesRecord(tour_id);
 
-    res.json({ success: true, images: rows });
+    res.json({ success: true, images });
 
   } catch (err) {
     console.error("Get images error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-

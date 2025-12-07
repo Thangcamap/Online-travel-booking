@@ -344,7 +344,7 @@ const TourDetailPage = () => {
         </div>
       </div>
 
-      {/*  Gợi ý tour khác */}
+       {/* Gợi ý tour khác
       <div className="max-w-6xl mx-auto px-6 mt-10 mb-20">
         <h2 className="text-2xl font-semibold text-gray-800 mb-6"> Gợi ý tour khác</h2>
         <motion.div
@@ -365,7 +365,7 @@ const TourDetailPage = () => {
             </div>
           ))}
         </motion.div>
-      </div>
+      </div> */}
 
       {/* Footer */}
       <div className="text-center text-sm text-gray-500 py-8">
