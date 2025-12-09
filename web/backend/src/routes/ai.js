@@ -4,9 +4,170 @@ const openai = require("../../config/openai");
 const { pool } = require("../../config/mysql");
 const { v4: uuidv4 } = require("uuid");
 
-// 🔥 NEW: Use AI to extract comprehensive keywords
+// 🧠 OPTIMIZED: AI-powered semantic preference with cache & rate limit handling
+async function extractUserPreferences(message) {
+  try {
+    // Check cache first
+    const cacheKey = `preferences:${message}`;
+    const cached = apiCallCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log("📦 Using cached preferences");
+      return cached.data;
+    }
+
+    const prompt = `Phân tích sở thích du lịch của người dùng từ câu hỏi này:
+
+"${message}"
+
+Trích xuất các yếu tố SỐ THÍCH (không phải chỉ keyword mà là ý định thực sự):
+
+Trả về JSON (KHÔNG có text khác):
+{
+  "travelStyle": {
+    "description": "mô tả phong cách du lịch (mạo hiểm, tận hưởng, khám phá, thư giãn...)",
+    "keywords": ["từ khóa liên quan"]
+  },
+  "experiences": {
+    "description": "những trải nghiệm họ muốn (kích thích, yên tĩnh, khám phá, học hỏi...)",
+    "keywords": ["thám hiểm", "khám phá", "thử thách"]
+  },
+  "environment": {
+    "description": "loại môi trường (hoang sơ, nhân tạo, tự nhiên, đô thị...)",
+    "keywords": ["hoang sơ", "rừng", "biển", "núi", "thôn quê"]
+  },
+  "gastronomy": {
+    "description": "quan tâm ẩm thực (đặc sản, địa phương, mới lạ...)",
+    "keywords": ["đặc sản", "ẩm thực", "địa phương"]
+  },
+  "intensity": "low/medium/high",
+  "reason": "lý do tổng quát"
+}`;
+
+    const response = await openai.responses.create({
+      model: "gpt-4o-mini",
+      input: prompt,
+      temperature: 0.7,
+    });
+    
+    const text = response.output[0].content[0].text;
+    const jsonText = text.match(/\{[\s\S]*\}/)?.[0];
+    
+    if (jsonText) {
+      const result = JSON.parse(jsonText);
+      // Cache result
+      apiCallCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      return result;
+    }
+  } catch (err) {
+    if (err.code === 'rate_limit_exceeded') {
+      console.warn("⚠️ Rate limited! Returning minimal preferences");
+      return {
+        travelStyle: { description: "khám phá", keywords: ["khám phá"] },
+        experiences: { description: "mạo hiểm", keywords: ["mạo hiểm"] },
+        environment: { description: "tự nhiên", keywords: ["tự nhiên"] },
+        gastronomy: { description: "đặc sản", keywords: ["đặc sản"] },
+        intensity: "medium",
+        reason: "khám phá"
+      };
+    }
+    console.warn("⚠️ AI preference extraction failed:", err);
+  }
+  
+  return null;
+}
+
+// 🧠 NEW: Local semantic scoring (NO API CALL - faster & cheaper!)
+function calculateSemanticTourScore(tour, userPreferences, itineraryTexts) {
+  const tourFullText = `${tour.name} ${tour.description} ${itineraryTexts}`.toLowerCase();
+  
+  let score = 0;
+  const reasons = [];
+  
+  // 1️⃣ Travel Style Match (0-20)
+  let travelStyleMatch = 0;
+  if (userPreferences.travelStyle?.keywords) {
+    userPreferences.travelStyle.keywords.forEach(kw => {
+      if (tourFullText.includes(kw.toLowerCase())) {
+        travelStyleMatch += 10;
+      }
+    });
+  }
+  travelStyleMatch = Math.min(travelStyleMatch, 20);
+  if (travelStyleMatch > 0) reasons.push(`phù hợp với phong cách ${userPreferences.travelStyle?.description || ''}`);
+  
+  // 2️⃣ Experience Match (0-25)
+  let experienceMatch = 0;
+  if (userPreferences.experiences?.keywords) {
+    userPreferences.experiences.keywords.forEach(kw => {
+      if (tourFullText.includes(kw.toLowerCase())) {
+        experienceMatch += 8;
+      }
+    });
+  }
+  experienceMatch = Math.min(experienceMatch, 25);
+  if (experienceMatch > 0) reasons.push(`có ${userPreferences.experiences?.description || 'trải nghiệm'}`);
+  
+  // 3️⃣ Environment Match (0-20)
+  let environmentMatch = 0;
+  if (userPreferences.environment?.keywords) {
+    userPreferences.environment.keywords.forEach(kw => {
+      if (tourFullText.includes(kw.toLowerCase())) {
+        environmentMatch += 10;
+      }
+    });
+  }
+  environmentMatch = Math.min(environmentMatch, 20);
+  if (environmentMatch > 0) reasons.push(`có ${userPreferences.environment?.description || 'môi trường'}`);
+  
+  // 4️⃣ Gastronomy Match (0-15)
+  let gastronomyMatch = 0;
+  if (userPreferences.gastronomy?.keywords) {
+    userPreferences.gastronomy.keywords.forEach(kw => {
+      if (tourFullText.includes(kw.toLowerCase())) {
+        gastronomyMatch += 7;
+      }
+    });
+  }
+  gastronomyMatch = Math.min(gastronomyMatch, 15);
+  if (gastronomyMatch > 0) reasons.push(`có ${userPreferences.gastronomy?.description || 'ẩm thực'}`);
+  
+  // 5️⃣ Overall Relevance (0-20)
+  let overallRelevance = 0;
+  const matchedCategories = [travelStyleMatch > 0, experienceMatch > 0, environmentMatch > 0, gastronomyMatch > 0]
+    .filter(Boolean).length;
+  overallRelevance = matchedCategories * 5;
+  overallRelevance = Math.min(overallRelevance, 20);
+  
+  // Rating bonus
+  const ratingBonus = parseFloat(tour.avg_rating || 0) * 2;
+  
+  const totalScore = travelStyleMatch + experienceMatch + environmentMatch + gastronomyMatch + overallRelevance + ratingBonus;
+  
+  return {
+    travelStyleMatch,
+    experienceMatch,
+    environmentMatch,
+    gastronomyMatch,
+    overallRelevance,
+    reasoning: reasons.length > 0 ? reasons.join(", ") : "Không phù hợp",
+    totalScore: Math.min(totalScore, 100)
+  };
+}
+
+// 🔥 OPTIMIZED: Use AI to extract keywords with rate limit handling
+const apiCallCache = new Map(); // Cache API responses
+const CACHE_TTL = 3600000; // 1 hour
+
 async function extractKeywordsWithAI(message) {
   try {
+    // Check cache first
+    const cacheKey = `keywords:${message}`;
+    const cached = apiCallCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log("📦 Using cached keywords");
+      return cached.data;
+    }
+
     const prompt = `Phân tích câu hỏi du lịch sau và trích xuất TẤT CẢ các yếu tố quan trọng:
 
 Câu hỏi: "${message}"
@@ -17,7 +178,7 @@ Hãy trích xuất:
 3. Phong cách (style): nghỉ dưỡng, mạo hiểm, văn hóa, ẩm thực...
 4. Đặc điểm (features): biển, núi, rừng, đảo, vịnh, động...
 
-Trả về JSON:
+Trả về JSON (KHÔNG có text khác):
 {
   "locations": ["địa điểm 1", "địa điểm 2"],
   "activities": ["hoạt động 1", "hoạt động 2"],
@@ -27,7 +188,7 @@ Trả về JSON:
 }`;
 
     const response = await openai.responses.create({
-      model: "gpt-4.1-mini",
+      model: "gpt-4o-mini",
       input: prompt,
     });
     
@@ -36,15 +197,29 @@ Trả về JSON:
     
     if (jsonText) {
       const parsed = JSON.parse(jsonText);
-      return {
+      const result = {
         locations: parsed.locations || [],
         activities: parsed.activities || [],
         style: parsed.style || [],
         features: parsed.features || [],
         allKeywords: parsed.keywords || []
       };
+      
+      // Cache result
+      apiCallCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      return result;
     }
   } catch (err) {
+    if (err.code === 'rate_limit_exceeded') {
+      console.warn("⚠️ Rate limited! Returning fallback keywords");
+      return {
+        locations: [],
+        activities: [],
+        style: [],
+        features: [],
+        allKeywords: message.toLowerCase().split(" ").filter(x => x.length > 2)
+      };
+    }
     console.warn("⚠️ AI keyword extraction failed:", err);
   }
   
@@ -55,7 +230,6 @@ Trả về JSON:
 function isFollowUpQuestion(message) {
   const lowerMsg = message.toLowerCase();
   
-  // If message contains "tour" followed by specific details, it's NOT a follow-up
   if (/tour[\s\-]+[a-zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]{3,}/i.test(message)) {
     return false;
   }
@@ -115,7 +289,6 @@ function calculateTourScore(tour, keywordData, itineraryTexts) {
     keywords: 0
   };
   
-  // Helper function for whole-word matching
   const matchesWholeWord = (text, keyword) => {
     if (keyword.length < 4) {
       const regex = new RegExp(`\\b${keyword}\\b`, 'i');
@@ -124,18 +297,16 @@ function calculateTourScore(tour, keywordData, itineraryTexts) {
     return text.includes(keyword.toLowerCase());
   };
   
-  // Score locations (highest weight - 10 points each)
   if (keywordData.locations) {
     keywordData.locations.forEach(loc => {
       if (matchesWholeWord(tourText, loc)) {
         score += 10;
         matchDetails.locations++;
-        if (matchesWholeWord(tourName, loc)) score += 15; // Extra for name match
+        if (matchesWholeWord(tourName, loc)) score += 15;
       }
     });
   }
   
-  // Score activities (high weight - 8 points each)
   if (keywordData.activities) {
     keywordData.activities.forEach(activity => {
       if (matchesWholeWord(tourText, activity)) {
@@ -146,7 +317,6 @@ function calculateTourScore(tour, keywordData, itineraryTexts) {
     });
   }
   
-  // Score features (medium weight - 5 points each)
   if (keywordData.features) {
     keywordData.features.forEach(feature => {
       if (matchesWholeWord(tourText, feature)) {
@@ -157,7 +327,6 @@ function calculateTourScore(tour, keywordData, itineraryTexts) {
     });
   }
   
-  // Score style (medium weight - 5 points each)
   if (keywordData.style) {
     keywordData.style.forEach(s => {
       if (matchesWholeWord(tourText, s)) {
@@ -168,7 +337,6 @@ function calculateTourScore(tour, keywordData, itineraryTexts) {
     });
   }
   
-  // Score general keywords (lower weight - 3 points each)
   if (keywordData.allKeywords) {
     keywordData.allKeywords.forEach(kw => {
       if (matchesWholeWord(tourText, kw)) {
@@ -178,7 +346,6 @@ function calculateTourScore(tour, keywordData, itineraryTexts) {
     });
   }
   
-  // Calculate total possible categories matched
   const categoriesWithMatches = [
     matchDetails.locations > 0,
     matchDetails.activities > 0,
@@ -186,12 +353,10 @@ function calculateTourScore(tour, keywordData, itineraryTexts) {
     matchDetails.style > 0
   ].filter(Boolean).length;
   
-  // Require matching in at least 1 major category (locations, activities, or features)
   if (matchDetails.locations === 0 && matchDetails.activities === 0 && matchDetails.features === 0) {
-    return 0;
+    return { score: 0, matchDetails };
   }
   
-  // Bonus for matching multiple categories
   if (categoriesWithMatches >= 2) {
     score *= 1.3;
   }
@@ -199,11 +364,53 @@ function calculateTourScore(tour, keywordData, itineraryTexts) {
     score *= 1.5;
   }
   
-  // Add rating and popularity
   score += parseFloat(tour.avg_rating || 0) * 0.5;
   score += Math.min(parseInt(tour.total_bookings || 0) * 0.1, 3);
   
   return { score, matchDetails };
+}
+
+// 🧠 NEW: Smart semantic matching workflow
+async function smartTourMatching(message, tours, itineraryMap) {
+  console.log("🧠 Starting smart semantic matching...");
+  
+  const userPreferences = await extractUserPreferences(message);
+  console.log("📊 User preferences:", JSON.stringify(userPreferences, null, 2));
+  
+  if (!userPreferences) {
+    console.warn("⚠️ Could not extract preferences");
+    return null;
+  }
+  
+  const scoredTours = [];
+  
+  for (const tour of tours) {
+    const itTexts = (itineraryMap[tour.tour_id] || [])
+      .map((it) => `${it.title} ${it.description}`)
+      .join(" ");
+    
+    const semanticScore = await calculateSemanticTourScore(tour, userPreferences, itTexts);
+    
+    if (semanticScore) {
+      scoredTours.push({
+        ...tour,
+        itineraries: itineraryMap[tour.tour_id] || [],
+        semanticScore,
+        finalScore: semanticScore.totalScore
+      });
+    }
+  }
+  
+  const sortedTours = scoredTours
+    .sort((a, b) => b.finalScore - a.finalScore)
+    .filter(t => t.finalScore >= 50);
+  
+  console.log("🎯 Semantic matching results:");
+  sortedTours.slice(0, 5).forEach((t, i) => {
+    console.log(`${i + 1}. ${t.name}: ${t.finalScore.toFixed(1)}/100 - ${t.semanticScore.reasoning}`);
+  });
+  
+  return sortedTours.slice(0, 3);
 }
 
 router.post("/chat", async (req, res) => {
@@ -241,40 +448,14 @@ router.post("/chat", async (req, res) => {
       console.log("📅 Detected date:", searchDate);
     }
 
-    // 3️⃣ 🔥 IMPROVED: Use AI for comprehensive keyword extraction
-    let keywordData = await extractKeywordsWithAI(message);
-    
-    if (!keywordData) {
-      // Fallback to simple extraction
-      keywordData = {
-        locations: [],
-        activities: [],
-        style: [],
-        features: [],
-        allKeywords: message.toLowerCase().split(" ").filter(x => x.length > 2)
-      };
-    }
-    
-    console.log("🔑 Extracted keyword data:", JSON.stringify(keywordData, null, 2));
-
-    // 🔥 Extract specific tour name if mentioned
-    let specificTourName = null;
-    const tourNameMatch = message.match(/tour\s+([a-zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ\s\-–—]+)/i);
-    if (tourNameMatch && tourNameMatch[1].length > 5) {
-      specificTourName = tourNameMatch[1].trim();
-      console.log("🎯 Specific tour requested:", specificTourName);
-    }
-
     // 4️⃣ Query tours
     let tours = [];
     let matchedTours = [];
     
-    // If follow-up with context, return previous tours
     if (isFollowUp && previousContext && previousContext.tours.length > 0) {
       matchedTours = previousContext.tours;
       console.log("✅ Returning", matchedTours.length, "tours from context");
     } else {
-      // Regular tour search
       let query = `
         SELECT 
           t.tour_id, t.name, t.description, t.price, t.currency,
@@ -349,7 +530,7 @@ router.post("/chat", async (req, res) => {
 
       console.log("💰 Price preference:", pricePref);
 
-      // 7️⃣ Filter by price range, then score
+      // 7️⃣ Filter by price range
       let candidateTours = tours;
       if (pricePref && typeof pricePref === "object") {
         candidateTours = candidateTours.filter((t) => {
@@ -358,85 +539,99 @@ router.post("/chat", async (req, res) => {
         });
       }
 
-      const scoredTours = candidateTours.map((t) => {
-        const itTexts = (itineraryMap[t.tour_id] || [])
-          .map((it) => `${it.title} ${it.description}`.toLowerCase())
-          .join(" ");
+      // 🧠 Try smart semantic matching first
+      matchedTours = await smartTourMatching(message, candidateTours, itineraryMap);
+      console.log(`🧠 Smart matching found ${matchedTours?.length || 0} tours`);
+
+      // Fallback to keyword matching if smart matching didn't work
+      if (!matchedTours || matchedTours.length === 0) {
+        console.log("⚠️ Smart matching returned no results, trying keyword matching...");
         
-        const { score, matchDetails } = calculateTourScore(t, keywordData, itTexts);
+        const keywordData = await extractKeywordsWithAI(message);
+        console.log("🔑 Extracted keyword data:", JSON.stringify(keywordData, null, 2));
         
-        let finalScore = score;
-        
-        // 🔥 Massive boost for exact tour name match
-        if (specificTourName) {
-          const tourNameLower = t.name.toLowerCase();
-          const specificNameLower = specificTourName.toLowerCase();
-          const specificWords = specificNameLower.split(/[\s\-–—]+/).filter(w => w.length > 2);
-          const matchedWords = specificWords.filter(w => tourNameLower.includes(w));
-          
-          if (matchedWords.length >= Math.max(2, specificWords.length * 0.5)) {
-            finalScore += 100;
-            console.log(`🎯 Tour name match: "${t.name}" (${matchedWords.length}/${specificWords.length} words)`);
+        if (keywordData) {
+          let specificTourName = null;
+          const tourNameMatch = message.match(/tour\s+([a-zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ\s\-–—]+)/i);
+          if (tourNameMatch && tourNameMatch[1].length > 5) {
+            specificTourName = tourNameMatch[1].trim();
+            console.log("🎯 Specific tour requested:", specificTourName);
           }
-        }
-        
-        // Price preference adjustments
-        if (pricePref === "cheap") {
-          const priceNum = Number(t.price || 0);
-          finalScore += priceNum > 0 ? 10 / Math.log10(priceNum + 10) : 5;
-        } else if (pricePref === "expensive") {
-          const priceNum = Number(t.price || 0);
-          finalScore += Math.log10(priceNum + 1) / 2;
-        }
-        
-        return { 
-          ...t, 
-          itineraries: itineraryMap[t.tour_id] || [], 
-          score: finalScore,
-          matchDetails
-        };
-      });
 
-      // 8️⃣ Sort and apply intelligent filtering
-      let finalSorted;
-      if (pricePref === "cheap") {
-        finalSorted = scoredTours
-          .filter(t => t.score > 0)
-          .sort((a, b) => {
-            const pa = Number(a.price || 0), pb = Number(b.price || 0);
-            if (pa !== pb) return pa - pb;
-            return b.score - a.score;
+          const scoredTours = candidateTours.map((t) => {
+            const itTexts = (itineraryMap[t.tour_id] || [])
+              .map((it) => `${it.title} ${it.description}`.toLowerCase())
+              .join(" ");
+            
+            const { score, matchDetails } = calculateTourScore(t, keywordData, itTexts);
+            
+            let finalScore = score;
+            
+            if (specificTourName) {
+              const tourNameLower = t.name.toLowerCase();
+              const specificNameLower = specificTourName.toLowerCase();
+              const specificWords = specificNameLower.split(/[\s\-–—]+/).filter(w => w.length > 2);
+              const matchedWords = specificWords.filter(w => tourNameLower.includes(w));
+              
+              if (matchedWords.length >= Math.max(2, specificWords.length * 0.5)) {
+                finalScore += 100;
+                console.log(`🎯 Tour name match: "${t.name}" (${matchedWords.length}/${specificWords.length} words)`);
+              }
+            }
+            
+            if (pricePref === "cheap") {
+              const priceNum = Number(t.price || 0);
+              finalScore += priceNum > 0 ? 10 / Math.log10(priceNum + 10) : 5;
+            } else if (pricePref === "expensive") {
+              const priceNum = Number(t.price || 0);
+              finalScore += Math.log10(priceNum + 1) / 2;
+            }
+            
+            return { 
+              ...t, 
+              itineraries: itineraryMap[t.tour_id] || [], 
+              score: finalScore,
+              matchDetails
+            };
           });
-      } else if (pricePref === "expensive") {
-        finalSorted = scoredTours
-          .filter(t => t.score > 0)
-          .sort((a, b) => {
-            const pa = Number(a.price || 0), pb = Number(b.price || 0);
-            if (pa !== pb) return pb - pa;
-            return b.score - a.score;
-          });
-      } else {
-        finalSorted = scoredTours
-          .filter(t => t.score > 0)
-          .sort((a, b) => b.score - a.score);
-      }
 
-      // 🔥 Intelligent filtering based on score distribution
-      if (finalSorted.length > 0) {
-        const topScore = finalSorted[0].score;
-        
-        // Dynamic threshold: tours must be within 50% of top score, or at least score 10
-        const minScore = Math.max(8, topScore * 0.4);
-        
-        finalSorted = finalSorted.filter(t => t.score >= minScore);
-        
-        console.log(`🎯 Top score: ${topScore.toFixed(1)}, Min threshold: ${minScore.toFixed(1)}`);
-        console.log(`📊 Filtered scores: ${finalSorted.slice(0, 5).map(t => `${t.score.toFixed(1)} (${JSON.stringify(t.matchDetails)})`).join(', ')}`);
-      }
+          let finalSorted;
+          if (pricePref === "cheap") {
+            finalSorted = scoredTours
+              .filter(t => t.score > 0)
+              .sort((a, b) => {
+                const pa = Number(a.price || 0), pb = Number(b.price || 0);
+                if (pa !== pb) return pa - pb;
+                return b.score - a.score;
+              });
+          } else if (pricePref === "expensive") {
+            finalSorted = scoredTours
+              .filter(t => t.score > 0)
+              .sort((a, b) => {
+                const pa = Number(a.price || 0), pb = Number(b.price || 0);
+                if (pa !== pb) return pb - pa;
+                return b.score - a.score;
+              });
+          } else {
+            finalSorted = scoredTours
+              .filter(t => t.score > 0)
+              .sort((a, b) => b.score - a.score);
+          }
 
-      // Limit to top 3 tours
-      matchedTours = finalSorted.slice(0, 3);
-      console.log(`✅ Found ${matchedTours.length} highly relevant tours`);
+          if (finalSorted.length > 0) {
+            const topScore = finalSorted[0].score;
+            const minScore = Math.max(8, topScore * 0.4);
+            
+            finalSorted = finalSorted.filter(t => t.score >= minScore);
+            
+            console.log(`🎯 Top score: ${topScore.toFixed(1)}, Min threshold: ${minScore.toFixed(1)}`);
+            console.log(`📊 Filtered scores: ${finalSorted.slice(0, 5).map(t => `${t.score.toFixed(1)} (${JSON.stringify(t.matchDetails)})`).join(', ')}`);
+          }
+
+          matchedTours = finalSorted.slice(0, 3);
+          console.log(`✅ Found ${matchedTours.length} highly relevant tours`);
+        }
+      }
     }
 
     // 9️⃣ Get conversation history
@@ -451,30 +646,45 @@ router.post("/chat", async (req, res) => {
       .join("\n");
 
     // 🔟 Generate AI response
-    const prompt = `Bạn là trợ lý du lịch chuyên nghiệp. ${isFollowUp ? "Câu hỏi TIẾP THEO về tour đã tư vấn." : "Yêu cầu MỚI."}
+    const prompt = matchedTours.length > 0 ? 
+    `Bạn là trợ lý du lịch chuyên nghiệp. ${isFollowUp ? "Câu hỏi TIẾP THEO về tour đã tư vấn." : "Yêu cầu MỚI."}
 
 Lịch sử:
 ${historyText}
 
 Yêu cầu: "${message}"
-${specificTourName ? `Tour cụ thể: "${specificTourName}"` : ''}
 
-${matchedTours.length > 0 ? `
 Tours phù hợp:
 ${matchedTours.map((t, i) => `
 ${i + 1}. ${t.name}
    Giá: ${t.price?.toLocaleString()} ${t.currency || "VND"}
    Thời gian: ${t.start_date} → ${t.end_date}
    Đánh giá: ${parseFloat(t.avg_rating || 0).toFixed(1)}⭐
+   ${t.semanticScore ? `Phù hợp: ${t.semanticScore.reasoning}` : ''}
 `).join("\n")}
-` : "Không tìm thấy tour phù hợp."}
 
 Hướng dẫn:
 - Gợi ý tour PHÙ HỢP NHẤT, giải thích rõ LÝ DO
 - Làm nổi bật điểm ĐẶC BIỆT
 - Kết thúc: "Bạn muốn biết thêm về tour nào?"
 
-Trả lời ngắn gọn, thân thiện (3-5 câu).`;
+Trả lời ngắn gọn, thân thiện (3-5 câu).`
+    :
+    `Bạn là trợ lý du lịch chuyên nghiệp.
+
+Lịch sử:
+${historyText}
+
+Yêu cầu: "${message}"
+
+⚠️ QUAN TRỌNG: Hiện tại KHÔNG CÓ tour nào trong hệ thống phù hợp với yêu cầu này.
+
+Hướng dẫn trả lời:
+- Thông báo rõ ràng: "Xin lỗi, hiện tại chúng tôi chưa có tour nào phù hợp với yêu cầu của bạn"
+- KHÔNG được tự sáng tạo hoặc gợi ý tour không có trong hệ thống
+- Gợi ý: "Bạn có thể thử tìm kiếm với các tiêu chí khác hoặc để lại thông tin, chúng tôi sẽ liên hệ khi có tour phù hợp"
+
+Trả lời ngắn gọn, thân thiện (2-3 câu).`;
 
     let aiReply;
     try {
@@ -485,9 +695,9 @@ Trả lời ngắn gọn, thân thiện (3-5 câu).`;
       });
       aiReply = completion.output[0].content[0].text;
     } catch (err) {
-      console.warn("⚠️ gpt-4o failed, using gpt-4.1-mini");
+      console.warn("⚠️ gpt-4o failed, using gpt-4o-mini");
       const completion = await openai.responses.create({
-        model: "gpt-4.1-mini",
+        model: "gpt-4o-mini",
         input: prompt,
         temperature: 0.7,
       });
@@ -506,8 +716,7 @@ Trả lời ngắn gọn, thân thiện (3-5 câu).`;
       reply: aiReply,
       tours: matchedTours,
       searchDate,
-      isFollowUp,
-      keywordData
+      isFollowUp
     });
   } catch (err) {
     console.error("❌ AI chat error:", err);
