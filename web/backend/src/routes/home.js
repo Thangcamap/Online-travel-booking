@@ -21,11 +21,14 @@ router.get("/tours", async (req, res) => {
         a.city AS departure_location,
         (SELECT image_url FROM images 
           WHERE entity_type='tour' AND entity_id=t.tour_id 
-          LIMIT 1) AS image_url
+          LIMIT 1) AS image_url,
+        IFNULL(AVG(r.rating), 0) AS avg_rating,
+        COUNT(DISTINCT r.review_id) AS total_reviews
       FROM tours t
       LEFT JOIN tour_providers tp ON t.provider_id = tp.provider_id
       LEFT JOIN users u ON tp.user_id = u.user_id 
       LEFT JOIN addresses a ON tp.address_id = a.address_id 
+      LEFT JOIN reviews r ON t.tour_id = r.tour_id
       WHERE 
         t.available = 1                             
         AND tp.status = 'active'                    
@@ -36,6 +39,7 @@ router.get("/tours", async (req, res) => {
         AND tp.approval_status = 'approved'         
         AND tp.status = 'active'                   
         AND u.status = 'active' 
+      GROUP BY t.tour_id
       ORDER BY t.created_at DESC`
     );
 

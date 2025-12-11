@@ -38,7 +38,7 @@ export default function ProviderBookings({ providerId }) {
               <tr key={b.booking_id} className="border-b hover:bg-gray-50">
                 <td className="p-2">{b.user_name} ({b.phone_number})</td>
                 <td className="p-2 font-medium">{b.tour_name}</td>
-                <td className="p-2">{b.quantity}</td>
+                <td className="p-2">-</td>
                 <td className="p-2">{Number(b.total_price).toLocaleString()} đ</td>
                 <td className="p-2 text-gray-600">
                   {b.booking_date

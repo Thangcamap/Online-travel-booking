@@ -40,9 +40,12 @@ router.post("/", async (req, res) => {
       name: user.name,
       email: user.email,
       phone_number: user.phone_number,
+      avatar_url: user.avatar_url || null,
       role: user.role,
       status: user.status,
     };
+
+    console.log("✅ Login successful for user:", safeUser.user_id);
 
     return res.status(200).json({
       message: "Đăng nhập thành công!",
@@ -51,7 +54,14 @@ router.post("/", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Lỗi đăng nhập:", error);
-    return res.status(500).json({ message: "Lỗi server khi đăng nhập." });
+    console.error("❌ Error details:", {
+      message: error.message,
+      stack: error.stack
+    });
+    return res.status(500).json({ 
+      message: "Lỗi server khi đăng nhập.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

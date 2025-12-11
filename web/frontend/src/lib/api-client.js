@@ -8,8 +8,17 @@ function authRequestInterceptor(config) {
   return config;
 }
 
+// Đảm bảo baseURL đúng format
+const getBaseURL = () => {
+  const envURL = import.meta.env.VITE_APP_API_URL;
+  if (envURL) {
+    return envURL.endsWith("/api") ? envURL : `${envURL}/api`;
+  }
+  return "http://localhost:5000/api";
+};
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_APP_API_URL + "/api",
+  baseURL: getBaseURL(),
 });
 
 api.interceptors.request.use(authRequestInterceptor);
@@ -61,11 +70,17 @@ api.interceptors.response.use(
       }
     }
         // 🟠 CUSTOM TOKEN EXPIRED HANDLER
+    // Chỉ redirect nếu không phải đang ở trang login/register
     if (error.response?.status === 401) {
-      console.warn("⚠️ Token hết hạn hoặc không hợp lệ, tự động logout...");
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
+      const currentPath = window.location.pathname;
+      const isAuthPage = currentPath === "/login" || currentPath === "/register";
+      
+      if (!isAuthPage) {
+        console.warn("⚠️ Token hết hạn hoặc không hợp lệ, tự động logout...");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   },

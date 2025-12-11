@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import useAuthUserStore from "@/stores/useAuthUserStore";
@@ -18,11 +18,21 @@ export default function PaymentPage() {
   const navigate = useNavigate();
   const { authUser: user } = useAuthUserStore();
 
-  const { data: payments = [], isLoading, isError } = useQuery({
-    queryKey: ["payments", user?.email],
-    queryFn: () => fetchPayments(user?.email),
-    enabled: !!user?.email,
+  const { data: payments = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ["payments", user?.user_id, user?.email],
+    queryFn: () => fetchPayments(user?.email, user?.user_id),
+    enabled: !!(user?.email || user?.user_id),
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
+
+  // Refetch khi component mount để đảm bảo có dữ liệu mới nhất
+  useEffect(() => {
+    if (user?.user_id || user?.email) {
+      console.log("🔄 Refetching payments for:", user?.user_id || user?.email);
+      refetch();
+    }
+  }, [user?.user_id, user?.email, refetch]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [current, setCurrent] = useState(null);
@@ -71,15 +81,19 @@ export default function PaymentPage() {
   const onConfirm = async () => {
     if (!current) return;
     try {
-      await confirmPayment(current.payment_id);
+      console.log("📝 Confirming payment:", current.payment_id);
+      const result = await confirmPayment(current.payment_id);
+      console.log("✅ Payment confirmed:", result);
       setPayStatus({ text: "✅ Thanh toán thành công!", cls: "text-green-600" });
-      qc.invalidateQueries(["payments", user.email]);
+      qc.invalidateQueries(["payments", user?.user_id, user?.email]);
       setTimeout(() => {
         closeModal();
         showInvoice(current.payment_id);
       }, 600);
-    } catch {
-      alert("❌ Lỗi khi xác nhận thanh toán!");
+    } catch (error) {
+      console.error("❌ Error confirming payment:", error);
+      console.error("❌ Error response:", error.response?.data);
+      alert(`❌ Lỗi khi xác nhận thanh toán!\n\n${error.response?.data?.error || error.message || "Vui lòng thử lại."}`);
     }
   };
 

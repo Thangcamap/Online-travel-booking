@@ -50,9 +50,23 @@ setTimeout(() => {
 }, 1500);
 
     } catch (error) {
-      console.error("❌ Lỗi đăng nhập:", error.response?.data);
-      const msg =
-        error.response?.data?.message || "Sai thông tin đăng nhập hoặc lỗi máy chủ.";
+      console.error("❌ Lỗi đăng nhập:", error);
+      console.error("❌ Error response:", error.response?.data);
+      console.error("❌ Error status:", error.response?.status);
+      
+      let msg = "Sai thông tin đăng nhập hoặc lỗi máy chủ.";
+      
+      if (error.response?.data?.message) {
+        msg = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        msg = "Tên đăng nhập hoặc mật khẩu không đúng.";
+      } else if (error.response?.status === 400) {
+        msg = "Vui lòng nhập đầy đủ thông tin.";
+      } else if (error.response?.status >= 500) {
+        msg = "Lỗi máy chủ. Vui lòng thử lại sau.";
+      } else if (!error.response) {
+        msg = "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.";
+      }
 
       Swal.fire({
         icon: "error",

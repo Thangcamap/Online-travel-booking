@@ -37,19 +37,49 @@ const getUserEmail = () => {
 // 🧾 CÁC API THANH TOÁN CHÍNH
 // ==============================
 
-// 🔹 Lấy danh sách thanh toán theo user email
-export const fetchPayments = async (email = null) => {
+// 🔹 Lấy danh sách thanh toán theo user email hoặc user_id
+export const fetchPayments = async (email = null, user_id = null) => {
   const userEmail = email || getUserEmail();
-  if (!userEmail) throw new Error("Không tìm thấy email người dùng (chưa đăng nhập)");
-  const res = await api.get(`/?email=${encodeURIComponent(userEmail)}`);
+  
+  // Lấy user_id từ localStorage nếu không có email
+  const getUserId = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      return user?.user_id || null;
+    } catch {
+      return null;
+    }
+  };
+  
+  const userId = user_id || getUserId();
+  
+  if (!userEmail && !userId) {
+    throw new Error("Không tìm thấy email hoặc user_id (chưa đăng nhập)");
+  }
+  
+  // Ưu tiên dùng user_id vì chính xác hơn
+  const queryParam = userId ? `user_id=${encodeURIComponent(userId)}` : `email=${encodeURIComponent(userEmail)}`;
+  console.log("📝 Fetching payments with:", queryParam);
+  
+  const res = await api.get(`/?${queryParam}`);
+  console.log("📊 Payments response:", res.data);
+  
   // backend có thể trả {data: [...]} hoặc mảng trực tiếp, nên cần xử lý an toàn
   return res.data?.data || res.data || [];
 };
 
 // 🔹 Xác nhận thanh toán
 export const confirmPayment = async (id) => {
-  const res = await api.patch(`/${id}/confirm`);
-  return res.data;
+  console.log("📝 API: Confirming payment with ID:", id);
+  try {
+    const res = await api.patch(`/${id}/confirm`);
+    console.log("✅ API: Payment confirmed successfully:", res.data);
+    return res.data;
+  } catch (error) {
+    console.error("❌ API: Error confirming payment:", error);
+    console.error("❌ API: Error response:", error.response?.data);
+    throw error;
+  }
 };
 
 // 🔹 Cập nhật thông tin thanh toán

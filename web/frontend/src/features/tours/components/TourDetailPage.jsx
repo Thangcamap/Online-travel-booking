@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTourById, fetchTours } from "../api/tours-api";
 import useAuthUserStore from "@/stores/useAuthUserStore";
-import { Calendar, MapPin, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, ArrowLeft, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -11,6 +11,9 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import UserChat from "@/features/chat/components/UserChat";
+import ReviewModal from "@/features/reviews/components/ReviewModal";
+import { getTourReviews } from "@/features/reviews/api/reviews-api";
+import StarRating from "@/components/StarRating";
 
 
 
@@ -28,6 +31,8 @@ const TourDetailPage = () => {
   const [activeTab, setActiveTab] = useState("include");
   const [openGallery, setOpenGallery] = useState(false);
   const [openChat, setOpenChat] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviews, setReviews] = useState([]);
 
 
 
@@ -35,6 +40,22 @@ const TourDetailPage = () => {
     queryKey: ["tour", tourId],
     queryFn: () => fetchTourById(tourId),
   });
+
+  // Fetch reviews
+  const { data: reviewsData } = useQuery({
+    queryKey: ["tourReviews", tourId],
+    queryFn: async () => {
+      const res = await getTourReviews(tourId);
+      return res;
+    },
+    enabled: !!tourId,
+  });
+
+  React.useEffect(() => {
+    if (reviewsData?.success) {
+      setReviews(reviewsData.reviews || []);
+    }
+  }, [reviewsData]);
   //  Hàm định dạng ngày
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -69,14 +90,42 @@ const TourDetailPage = () => {
   const totalPrice =
     basePrice * (guestCount.adults + guestCount.children * 0.7 + guestCount.infants * 0.3);
 
-  const today = new Date();
-  const minDate = new Date(today.setDate(today.getDate() + 2)).toISOString().split("T")[0];
+  // Tính minDate (hôm nay + 2 ngày)
+  const getMinDate = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset về 00:00:00
+    const minDate = new Date(today);
+    minDate.setDate(today.getDate() + 2); // Thêm 2 ngày
+    return minDate.toISOString().split("T")[0];
+  };
+
+  const minDate = getMinDate();
 
   const validateDate = () => {
-    if (!selectedDate) return false;
+    if (!selectedDate) {
+      console.log("❌ No date selected");
+      return false;
+    }
+
+    // Reset time về 00:00:00 cho cả hai ngày để so sánh chính xác
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const chosen = new Date(selectedDate);
-    const diffDays = Math.ceil((chosen - today) / (1000 * 60 * 60 * 24));
+    chosen.setHours(0, 0, 0, 0);
+
+    // Tính số ngày chênh lệch (số nguyên)
+    const diffTime = chosen.getTime() - today.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    console.log("📅 Date validation:", {
+      today: today.toISOString().split("T")[0],
+      chosen: selectedDate,
+      diffDays,
+      isValid: diffDays >= 2,
+    });
+
+    // Phải chọn ngày >= hôm nay + 2 ngày
     return diffDays >= 2;
   };
 
@@ -88,7 +137,17 @@ const TourDetailPage = () => {
     }
 
     if (!validateDate()) {
-      alert(" Ngày khởi hành phải trước ít nhất 2 ngày!");
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const minAllowedDate = new Date(today);
+      minAllowedDate.setDate(today.getDate() + 2);
+      
+      alert(
+        `⚠️ Ngày khởi hành phải cách hôm nay ít nhất 2 ngày!\n\n` +
+        `Hôm nay: ${today.toLocaleDateString("vi-VN")}\n` +
+        `Ngày sớm nhất có thể đặt: ${minAllowedDate.toLocaleDateString("vi-VN")}\n` +
+        `Bạn đã chọn: ${selectedDate ? new Date(selectedDate).toLocaleDateString("vi-VN") : "Chưa chọn"}`
+      );
       return;
     }
 
@@ -96,12 +155,13 @@ const TourDetailPage = () => {
       const payload = {
         user_id: authUser.user_id,
         tour_id: tour.tour_id,
-        quantity: guestCount.adults + guestCount.children + guestCount.infants,
         total_price: totalPrice,
         start_date: selectedDate,
         status: "pending",
       };
 
+      console.log("📝 Booking payload:", payload);
+      
       const res = await fetch(`${API_BASE}/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,10 +169,20 @@ const TourDetailPage = () => {
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Lỗi khi đặt tour");
+      console.log("📊 Booking response:", data);
+      
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Lỗi khi đặt tour");
+      }
 
       alert("🎉 Đặt tour thành công! Đang chuyển đến trang thanh toán...");
-      navigate(`/payments?booking_id=${data.booking_id}`);
+      
+      // Invalidate payments query để refresh danh sách
+      setTimeout(() => {
+        navigate(`/payments`);
+        // Reload page để refresh payments
+        window.location.href = `/payments`;
+      }, 500);
     } catch (err) {
       console.error(" Lỗi khi đặt tour:", err);
       alert("Đặt tour thất bại. Vui lòng thử lại!");
@@ -261,6 +331,74 @@ const TourDetailPage = () => {
               </p>
             )}
           </div>
+
+          {/* Reviews Section */}
+          <div className="mt-10">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-800">
+                Đánh giá ({reviews.length})
+              </h3>
+              {authUser && (
+                <button
+                  onClick={() => setReviewModalOpen(true)}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-semibold flex items-center gap-2"
+                >
+                  <Star className="w-4 h-4" />
+                  Viết đánh giá
+                </button>
+              )}
+            </div>
+
+            {reviews.length === 0 ? (
+              <p className="text-gray-500 italic py-4">
+                Chưa có đánh giá nào cho tour này.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <div
+                    key={review.review_id}
+                    className="p-5 bg-gray-50 border border-gray-200 rounded-xl"
+                  >
+                    <div className="flex items-start gap-4">
+                      <img
+                        src={
+                          review.user_avatar ||
+                          "https://i.pravatar.cc/50"
+                        }
+                        alt={review.user_name}
+                        className="w-12 h-12 rounded-full"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-gray-800">
+                            {review.user_name || "Người dùng"}
+                          </h4>
+                          <span className="text-sm text-gray-500">
+                            {new Date(review.created_at).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </span>
+                        </div>
+                        <div className="mb-2">
+                          <StarRating
+                            rating={review.rating}
+                            showReviews={false}
+                            size={18}
+                          />
+                        </div>
+                        {review.comment && (
+                          <p className="text-gray-700 leading-relaxed">
+                            {review.comment}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {/*  Cột phải */}
         <div className="bg-white p-6 rounded-2xl shadow-md h-fit sticky top-20">
@@ -394,6 +532,17 @@ const TourDetailPage = () => {
     </div>
   </div>
 )}
+
+      {/* Review Modal */}
+      {authUser && (
+        <ReviewModal
+          isOpen={reviewModalOpen}
+          onClose={() => setReviewModalOpen(false)}
+          tour_id={tourId}
+          user_id={authUser.user_id}
+          tour_name={tour?.name}
+        />
+      )}
 
     </div>
   );
