@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { socket } from "@/lib/socket"; 
 import Navbar from "@/components/Navbar";
 import { Search } from "lucide-react";
+import StarRating from "@/components/StarRating";
 
 
 
@@ -256,6 +257,15 @@ const filteredTours = tours.filter((t) => {
                     <p className="text-gray-600 text-sm mb-3 line-clamp-3">
                       {tour.description || "No description available."}
                     </p>
+
+                    {/* Star Rating */}
+                    <div className="mb-3">
+                      <StarRating 
+                        rating={tour.avg_rating || 0} 
+                        totalReviews={tour.total_reviews || 0}
+                        size={16}
+                      />
+                    </div>
 
                     {tour.departure_location && (
   <p className="text-sm text-gray-500 mb-3">

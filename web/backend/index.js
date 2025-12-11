@@ -16,7 +16,7 @@ initSocket(server);
 // ✅ Middleware CORS + JSON
 app.use(cors({
   origin: "http://localhost:5173",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
@@ -60,6 +60,11 @@ app.use("/api/ai", aiRoutes);
 const bookingsRoutes = require("./src/routes/bookings");
 app.use("/api/bookings", bookingsRoutes);
 
+const reviewsRoutes = require("./src/routes/reviews");
+app.use("/api/reviews", reviewsRoutes);
+
+const pointsRoutes = require("./src/routes/points");
+app.use("/api/points", pointsRoutes);
 
 const paymentsRoutes = require("./src/routes/payments");
 

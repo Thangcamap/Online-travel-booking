@@ -17,6 +17,7 @@ import { initUserSocket } from "@/lib/socket-init";
 import AboutPage from "./features/about/components/AboutPage";
 import ToursPage from "./features/tours/components/ToursPage.jsx";
 import TourDetailPage from "./features/tours/components/TourDetailPage.jsx";
+import ProfilePage from "./features/profile/components/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ useEffect(() => {
               <Route path="/about" element={<AboutPage />} />
               <Route path="/tours" element={<ToursPage />} />
               <Route path="/tours/:tourId" element={<TourDetailPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
 
             </Routes>
           </div>

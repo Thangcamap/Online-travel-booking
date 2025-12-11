@@ -154,7 +154,7 @@ exports.getPublicTourDetailRecord = async (tour_id) => {
 exports.getProviderBookingsRecord = async (provider_id) => {
   const [rows] = await pool.query(
     `SELECT 
-      b.booking_id, b.quantity, b.total_price, b.status AS booking_status,
+      b.booking_id, b.total_price, b.status AS booking_status,
       b.booking_date, b.check_in_time,
       u.name AS user_name, u.email, u.phone_number,
       t.name AS tour_name, t.tour_id,
