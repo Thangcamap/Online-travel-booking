@@ -27,6 +27,7 @@ router.get("/:id", tour.getPublicTourDetail);
 
 // Bookings
 router.get("/providers/:providerId/bookings", tour.getProviderBookings);
+router.get("/:tour_id/bookings", tour.getTourBookings); 
 router.put("/bookings/:booking_id/status", tour.updateBookingStatus);
 
 module.exports = router;

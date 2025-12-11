@@ -4,14 +4,14 @@ const openai = require("../../config/openai");
 const { pool } = require("../../config/mysql");
 const { v4: uuidv4 } = require("uuid");
 
-// 🧠 OPTIMIZED: AI-powered semantic preference with cache & rate limit handling
+//  OPTIMIZED: AI-powered semantic preference with cache & rate limit handling
 async function extractUserPreferences(message) {
   try {
     // Check cache first
     const cacheKey = `preferences:${message}`;
     const cached = apiCallCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log("📦 Using cached preferences");
+      console.log(" Using cached preferences");
       return cached.data;
     }
 
@@ -60,7 +60,7 @@ Trả về JSON (KHÔNG có text khác):
     }
   } catch (err) {
     if (err.code === 'rate_limit_exceeded') {
-      console.warn("⚠️ Rate limited! Returning minimal preferences");
+      console.warn(" Rate limited! Returning minimal preferences");
       return {
         travelStyle: { description: "khám phá", keywords: ["khám phá"] },
         experiences: { description: "mạo hiểm", keywords: ["mạo hiểm"] },
@@ -70,20 +70,20 @@ Trả về JSON (KHÔNG có text khác):
         reason: "khám phá"
       };
     }
-    console.warn("⚠️ AI preference extraction failed:", err);
+    console.warn(" AI preference extraction failed:", err);
   }
   
   return null;
 }
 
-// 🧠 NEW: Local semantic scoring (NO API CALL - faster & cheaper!)
+//  NEW: Local semantic scoring (NO API CALL - faster & cheaper!)
 function calculateSemanticTourScore(tour, userPreferences, itineraryTexts) {
   const tourFullText = `${tour.name} ${tour.description} ${itineraryTexts}`.toLowerCase();
   
   let score = 0;
   const reasons = [];
   
-  // 1️⃣ Travel Style Match (0-20)
+  //  Travel Style Match (0-20)
   let travelStyleMatch = 0;
   if (userPreferences.travelStyle?.keywords) {
     userPreferences.travelStyle.keywords.forEach(kw => {
@@ -95,7 +95,7 @@ function calculateSemanticTourScore(tour, userPreferences, itineraryTexts) {
   travelStyleMatch = Math.min(travelStyleMatch, 20);
   if (travelStyleMatch > 0) reasons.push(`phù hợp với phong cách ${userPreferences.travelStyle?.description || ''}`);
   
-  // 2️⃣ Experience Match (0-25)
+  //  Experience Match (0-25)
   let experienceMatch = 0;
   if (userPreferences.experiences?.keywords) {
     userPreferences.experiences.keywords.forEach(kw => {
@@ -107,7 +107,7 @@ function calculateSemanticTourScore(tour, userPreferences, itineraryTexts) {
   experienceMatch = Math.min(experienceMatch, 25);
   if (experienceMatch > 0) reasons.push(`có ${userPreferences.experiences?.description || 'trải nghiệm'}`);
   
-  // 3️⃣ Environment Match (0-20)
+  //  Environment Match (0-20)
   let environmentMatch = 0;
   if (userPreferences.environment?.keywords) {
     userPreferences.environment.keywords.forEach(kw => {
@@ -119,7 +119,7 @@ function calculateSemanticTourScore(tour, userPreferences, itineraryTexts) {
   environmentMatch = Math.min(environmentMatch, 20);
   if (environmentMatch > 0) reasons.push(`có ${userPreferences.environment?.description || 'môi trường'}`);
   
-  // 4️⃣ Gastronomy Match (0-15)
+  //  Gastronomy Match (0-15)
   let gastronomyMatch = 0;
   if (userPreferences.gastronomy?.keywords) {
     userPreferences.gastronomy.keywords.forEach(kw => {
@@ -131,7 +131,7 @@ function calculateSemanticTourScore(tour, userPreferences, itineraryTexts) {
   gastronomyMatch = Math.min(gastronomyMatch, 15);
   if (gastronomyMatch > 0) reasons.push(`có ${userPreferences.gastronomy?.description || 'ẩm thực'}`);
   
-  // 5️⃣ Overall Relevance (0-20)
+  //  Overall Relevance (0-20)
   let overallRelevance = 0;
   const matchedCategories = [travelStyleMatch > 0, experienceMatch > 0, environmentMatch > 0, gastronomyMatch > 0]
     .filter(Boolean).length;
@@ -154,7 +154,7 @@ function calculateSemanticTourScore(tour, userPreferences, itineraryTexts) {
   };
 }
 
-// 🔥 OPTIMIZED: Use AI to extract keywords with rate limit handling
+//  OPTIMIZED: Use AI to extract keywords with rate limit handling
 const apiCallCache = new Map(); // Cache API responses
 const CACHE_TTL = 3600000; // 1 hour
 
@@ -164,7 +164,7 @@ async function extractKeywordsWithAI(message) {
     const cacheKey = `keywords:${message}`;
     const cached = apiCallCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log("📦 Using cached keywords");
+      console.log(" Using cached keywords");
       return cached.data;
     }
 
@@ -211,7 +211,7 @@ Trả về JSON (KHÔNG có text khác):
     }
   } catch (err) {
     if (err.code === 'rate_limit_exceeded') {
-      console.warn("⚠️ Rate limited! Returning fallback keywords");
+      console.warn(" Rate limited! Returning fallback keywords");
       return {
         locations: [],
         activities: [],
@@ -220,13 +220,13 @@ Trả về JSON (KHÔNG có text khác):
         allKeywords: message.toLowerCase().split(" ").filter(x => x.length > 2)
       };
     }
-    console.warn("⚠️ AI keyword extraction failed:", err);
+    console.warn(" AI keyword extraction failed:", err);
   }
   
   return null;
 }
 
-// 🔥 NEW: Detect if message is a follow-up question
+//  NEW: Detect if message is a follow-up question
 function isFollowUpQuestion(message) {
   const lowerMsg = message.toLowerCase();
   
@@ -249,7 +249,7 @@ function isFollowUpQuestion(message) {
   return followUpPatterns.some(pattern => pattern.test(lowerMsg.trim()));
 }
 
-// 🔥 NEW: Extract tour context from previous messages
+//  NEW: Extract tour context from previous messages
 async function getPreviousTourContext(user_id) {
   try {
     const [lastMessages] = await pool.query(
@@ -275,7 +275,7 @@ async function getPreviousTourContext(user_id) {
   return null;
 }
 
-// 🔥 IMPROVED: Advanced scoring with semantic understanding
+//  IMPROVED: Advanced scoring with semantic understanding
 function calculateTourScore(tour, keywordData, itineraryTexts) {
   const tourText = `${tour.name} ${tour.description} ${itineraryTexts}`.toLowerCase();
   const tourName = tour.name.toLowerCase();
@@ -370,15 +370,15 @@ function calculateTourScore(tour, keywordData, itineraryTexts) {
   return { score, matchDetails };
 }
 
-// 🧠 NEW: Smart semantic matching workflow
+//  NEW: Smart semantic matching workflow
 async function smartTourMatching(message, tours, itineraryMap) {
-  console.log("🧠 Starting smart semantic matching...");
+  console.log(" Starting smart semantic matching...");
   
   const userPreferences = await extractUserPreferences(message);
-  console.log("📊 User preferences:", JSON.stringify(userPreferences, null, 2));
+  console.log(" User preferences:", JSON.stringify(userPreferences, null, 2));
   
   if (!userPreferences) {
-    console.warn("⚠️ Could not extract preferences");
+    console.warn(" Could not extract preferences");
     return null;
   }
   
@@ -405,7 +405,7 @@ async function smartTourMatching(message, tours, itineraryMap) {
     .sort((a, b) => b.finalScore - a.finalScore)
     .filter(t => t.finalScore >= 50);
   
-  console.log("🎯 Semantic matching results:");
+  console.log(" Semantic matching results:");
   sortedTours.slice(0, 5).forEach((t, i) => {
     console.log(`${i + 1}. ${t.name}: ${t.finalScore.toFixed(1)}/100 - ${t.semanticScore.reasoning}`);
   });
@@ -419,23 +419,23 @@ router.post("/chat", async (req, res) => {
     return res.status(400).json({ success: false, message: "Thiếu user_id hoặc message" });
 
   try {
-    // 1️⃣ Save user message
+    //  Save user message
     await pool.query(
       `INSERT INTO ai_messages (message_id, user_id, role, message)
        VALUES (?, ?, 'user', ?)`,
       [uuidv4(), user_id, message]
     );
 
-    // 🔥 Check if this is a follow-up question
+    //  Check if this is a follow-up question
     const isFollowUp = isFollowUpQuestion(message);
     let previousContext = null;
     
     if (isFollowUp) {
       previousContext = await getPreviousTourContext(user_id);
-      console.log("🔗 Follow-up detected, loading context:", previousContext ? "Found" : "None");
+      console.log(" Follow-up detected, loading context:", previousContext ? "Found" : "None");
     }
 
-    // 2️⃣ Date detection
+    //  Date detection
     const dateMatch =
       message.match(/\b(\d{1,2})[\/\-\. ]?tháng[\/\-\. ]?(\d{1,2})\b/i) ||
       message.match(/\b(\d{1,2})[\/\-\. ](\d{1,2})\b/);
@@ -445,16 +445,16 @@ router.post("/chat", async (req, res) => {
       const month = parseInt(dateMatch[2]);
       const year = new Date().getFullYear();
       searchDate = `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
-      console.log("📅 Detected date:", searchDate);
+      console.log(" Detected date:", searchDate);
     }
 
-    // 4️⃣ Query tours
+    //  Query tours
     let tours = [];
     let matchedTours = [];
     
     if (isFollowUp && previousContext && previousContext.tours.length > 0) {
       matchedTours = previousContext.tours;
-      console.log("✅ Returning", matchedTours.length, "tours from context");
+      console.log(" Returning", matchedTours.length, "tours from context");
     } else {
       let query = `
         SELECT 
@@ -479,7 +479,7 @@ router.post("/chat", async (req, res) => {
 
       [tours] = await pool.query(query, params);
 
-      // 5️⃣ Get itineraries
+      //  Get itineraries
       const [itineraries] = await pool.query(`
         SELECT tour_id, day_number, title, description
         FROM tour_itineraries
@@ -491,7 +491,7 @@ router.post("/chat", async (req, res) => {
         itineraryMap[it.tour_id].push(it);
       });
 
-      // 6️⃣ Price preference detection
+      //  Price preference detection
       const lowerMsg = message.toLowerCase();
       let pricePref = null;
 
@@ -528,9 +528,9 @@ router.post("/chat", async (req, res) => {
         if (a) pricePref = { min: a, max: Number.MAX_SAFE_INTEGER };
       }
 
-      console.log("💰 Price preference:", pricePref);
+      console.log(" Price preference:", pricePref);
 
-      // 7️⃣ Filter by price range
+      //  Filter by price range
       let candidateTours = tours;
       if (pricePref && typeof pricePref === "object") {
         candidateTours = candidateTours.filter((t) => {
@@ -539,16 +539,16 @@ router.post("/chat", async (req, res) => {
         });
       }
 
-      // 🧠 Try smart semantic matching first
+      //  Try smart semantic matching first
       matchedTours = await smartTourMatching(message, candidateTours, itineraryMap);
-      console.log(`🧠 Smart matching found ${matchedTours?.length || 0} tours`);
+      console.log(` Smart matching found ${matchedTours?.length || 0} tours`);
 
       // Fallback to keyword matching if smart matching didn't work
       if (!matchedTours || matchedTours.length === 0) {
-        console.log("⚠️ Smart matching returned no results, trying keyword matching...");
+        console.log(" Smart matching returned no results, trying keyword matching...");
         
         const keywordData = await extractKeywordsWithAI(message);
-        console.log("🔑 Extracted keyword data:", JSON.stringify(keywordData, null, 2));
+        console.log(" Extracted keyword data:", JSON.stringify(keywordData, null, 2));
         
         if (keywordData) {
           let specificTourName = null;
@@ -634,7 +634,7 @@ router.post("/chat", async (req, res) => {
       }
     }
 
-    // 9️⃣ Get conversation history
+    //  Get conversation history
     const [history] = await pool.query(
       `SELECT role, message FROM ai_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT 10`,
       [user_id]
@@ -645,7 +645,7 @@ router.post("/chat", async (req, res) => {
       .map((m) => `${m.role === "user" ? "User" : "AI"}: ${m.message}`)
       .join("\n");
 
-    // 🔟 Generate AI response
+    //  Generate AI response
     const prompt = matchedTours.length > 0 ? 
     `Bạn là trợ lý du lịch chuyên nghiệp. ${isFollowUp ? "Câu hỏi TIẾP THEO về tour đã tư vấn." : "Yêu cầu MỚI."}
 

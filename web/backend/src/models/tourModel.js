@@ -202,3 +202,24 @@ exports.getTourImagesRecord = async (tour_id) => {
   );
   return rows;
 };
+
+// ======================== GET BOOKINGS BY TOUR ==========================
+exports.getTourBookingsRecord = async (tour_id) => {
+  const [rows] = await pool.query(
+    `SELECT 
+      b.booking_id, b.quantity, b.total_price, b.status AS booking_status,
+      b.booking_date, b.check_in_time,
+      u.name AS user_name, u.email, u.phone_number,
+      t.name AS tour_name, t.tour_id,
+      p.payment_id, p.method, p.amount, p.status AS payment_status, p.payment_image
+    FROM bookings b
+    INNER JOIN users u ON b.user_id = u.user_id
+    INNER JOIN tours t ON b.tour_id = t.tour_id
+    INNER JOIN payments p ON p.booking_id = b.booking_id
+    WHERE b.tour_id = ?
+    AND p.status = 'paid'
+    ORDER BY b.created_at DESC`,
+    [tour_id]
+  );
+  return rows;
+};

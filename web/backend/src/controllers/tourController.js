@@ -263,3 +263,18 @@ exports.getTourImages = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// ======================== GET BOOKINGS BY TOUR ==========================
+exports.getTourBookings = async (req, res) => {
+  try {
+    const { tour_id } = req.params;
+
+    const bookings = await tourModel.getTourBookingsRecord(tour_id);
+
+    res.json({ success: true, bookings });
+
+  } catch (err) {
+    console.error("Get tour bookings error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

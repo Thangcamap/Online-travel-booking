@@ -322,9 +322,9 @@ socket.on("provider_status_changed", async (data) => {
 
         {activeTab === "booking" && (
             <div>
-              <h1 className="text-2xl font-semibold text-orange-600 mb-4">
+              {/* <h1 className="text-2xl font-semibold text-orange-600 mb-4">
                 Danh sách khách đặt tour
-              </h1>
+              </h1> */}
               <ProviderBookings providerId={providerId} />
             </div>
         )}
