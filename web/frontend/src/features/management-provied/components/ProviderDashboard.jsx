@@ -308,9 +308,6 @@ socket.on("provider_status_changed", async (data) => {
 
         {activeTab === "add" && (
           <div>
-            <h1 className="text-2xl font-semibold text-orange-600 mb-4">
-              Thêm Tour Mới
-            </h1>
             <Card className="p-6 border border-green-100 shadow-sm bg-white">
               <AddTourForm
                 providerId={providerId}

@@ -37,7 +37,7 @@ exports.createTour = async (req, res) => {
     if (!name || !price || !start_date || !end_date || !available_slots) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu dữ liệu quan trọng."
+        message: "Thiếu dữ liệu ."
       });
     }
 

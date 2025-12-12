@@ -309,7 +309,7 @@ const ProfilePage = () => {
               <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">Bạn chưa có tour nào được đặt.</p>
               <button
-                onClick={() => navigate("/tours")}
+                onClick={() => navigate("/home")}
                 className="mt-4 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
               >
                 Khám phá tour
