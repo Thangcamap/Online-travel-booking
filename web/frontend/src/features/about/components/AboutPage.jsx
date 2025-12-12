@@ -98,7 +98,7 @@ export default function AboutPage() {
             <Link to="/home" className="hover:text-orange-500">Home</Link>
             <Link to="/tours" className="hover:text-orange-500">Tours</Link>
             <Link to="/about" className="text-orange-600 font-semibold">About</Link>
-            <Link to="/payments" className="hover:text-orange-500">Payments</Link>
+            <Link to="/profile?tab=payments" className="hover:text-orange-500">Payments</Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -145,7 +145,7 @@ export default function AboutPage() {
                     </Menu.Item>
                     <Menu.Item>
                       <button
-                        onClick={() => navigate("/payments")}
+                        onClick={() => navigate("/profile?tab=payments")}
                         className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                       >
                         💳 Thanh toán của tôi

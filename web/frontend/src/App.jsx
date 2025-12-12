@@ -10,7 +10,6 @@ import Home from "./features/management-home/components/home.jsx";
 import AI from "./features/AI/components/AI";
 import ProtectedRoute from "@/components/ProtectedRoute";  
 import useAuthUserStore from "@/stores/useAuthUserStore"; 
-import PaymentPage from "./features/payments/components/PaymentPage.jsx"; 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
 import { initUserSocket } from "@/lib/socket-init"; 
@@ -63,8 +62,6 @@ useEffect(() => {
               {/* Các trang khác */}
               <Route path="/" element={<CreateProvided />} />
               <Route path="/ai" element={<AI />} />
-               <Route path="/home"element={<Home />}/>
-               <Route path="/payments" element={<PaymentPage />} />  
               <Route path="/home" element={<Home />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/tours" element={<ToursPage />} />

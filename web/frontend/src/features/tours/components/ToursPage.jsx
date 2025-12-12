@@ -83,7 +83,7 @@ export default function ToursPage() {
             <Link to="/about" className="hover:text-orange-500">
               About
             </Link>
-            <Link to="/payments" className="hover:text-orange-500">
+            <Link to="/profile?tab=payments" className="hover:text-orange-500">
               Payments
             </Link>
           </nav>
@@ -132,7 +132,7 @@ export default function ToursPage() {
                     </Menu.Item>
                     <Menu.Item>
                       <button
-                        onClick={() => navigate("/payments")}
+                        onClick={() => navigate("/profile?tab=payments")}
                         className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                       >
                         💳 Thanh toán của tôi

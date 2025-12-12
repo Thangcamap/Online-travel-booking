@@ -14,6 +14,9 @@ import UserChat from "@/features/chat/components/UserChat";
 import ReviewModal from "@/features/reviews/components/ReviewModal";
 import { getTourReviews } from "@/features/reviews/api/reviews-api";
 import StarRating from "@/components/StarRating";
+import { fetchPayments } from "@/features/payments/api/payments";
+import { fetchBookingsByUser } from "../api/bookings-api";
+import { api } from "@/lib/api-client";
 
 
 
@@ -51,11 +54,57 @@ const TourDetailPage = () => {
     enabled: !!tourId,
   });
 
+  // Fetch user bookings to check if tour is paid
+  const { data: userBookingsData } = useQuery({
+    queryKey: ["userBookings", authUser?.user_id],
+    queryFn: async () => {
+      if (!authUser?.user_id) return { success: false, bookings: [] };
+      try {
+        const res = await api.get(`/bookings/user/${authUser.user_id}`);
+        return res.data;
+      } catch (err) {
+        console.error("Error fetching bookings:", err);
+        return { success: false, bookings: [] };
+      }
+    },
+    enabled: !!authUser?.user_id,
+  });
+
+  // Fetch user payments to check payment status
+  const { data: userPayments = [] } = useQuery({
+    queryKey: ["userPayments", authUser?.user_id, authUser?.email],
+    queryFn: () => fetchPayments(authUser?.email, authUser?.user_id),
+    enabled: !!(authUser?.email || authUser?.user_id),
+    refetchOnMount: true,
+  });
+
   React.useEffect(() => {
     if (reviewsData?.success) {
       setReviews(reviewsData.reviews || []);
     }
   }, [reviewsData]);
+
+  // Kiểm tra xem user đã thanh toán tour này chưa
+  const hasPaidForTour = () => {
+    if (!authUser || !tourId) return false;
+    
+    const bookings = userBookingsData?.bookings || [];
+    if (!bookings.length || !userPayments.length) return false;
+    
+    // Tìm booking cho tour này
+    const tourBooking = bookings.find(booking => booking.tour_id === tourId);
+    if (!tourBooking) return false;
+    
+    // Tìm payment cho booking này với status = 'paid'
+    const payment = userPayments.find(p => p.booking_id === tourBooking.booking_id);
+    
+    // Chỉ cho phép đánh giá nếu:
+    // 1. Có payment với status = 'paid'
+    // 2. Booking status = 'completed' (tùy chọn, có thể bỏ qua nếu không cần)
+    return payment && payment.status === "paid";
+  };
+
+  const canReview = hasPaidForTour();
   //  Hàm định dạng ngày
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -177,11 +226,9 @@ const TourDetailPage = () => {
 
       alert("🎉 Đặt tour thành công! Đang chuyển đến trang thanh toán...");
       
-      // Invalidate payments query để refresh danh sách
+      // Chuyển đến ProfilePage với tab "payments" active
       setTimeout(() => {
-        navigate(`/payments`);
-        // Reload page để refresh payments
-        window.location.href = `/payments`;
+        navigate(`/profile?tab=payments`);
       }, 500);
     } catch (err) {
       console.error(" Lỗi khi đặt tour:", err);
@@ -334,67 +381,136 @@ const TourDetailPage = () => {
 
           {/* Reviews Section */}
           <div className="mt-10">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-800">
-                Đánh giá ({reviews.length})
-              </h3>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-1">
+                  Đánh giá từ khách hàng
+                </h3>
+                {reviews.length > 0 && (() => {
+                  const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
+                  return (
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-1">
+                        <StarRating 
+                          rating={avgRating} 
+                          totalReviews={reviews.length}
+                          showReviews={true}
+                          size={20}
+                        />
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {reviews.length} {reviews.length === 1 ? 'đánh giá' : 'đánh giá'}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
               {authUser && (
-                <button
-                  onClick={() => setReviewModalOpen(true)}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-semibold flex items-center gap-2"
-                >
-                  <Star className="w-4 h-4" />
-                  Viết đánh giá
-                </button>
+                <>
+                  {canReview ? (
+                    <button
+                      onClick={() => setReviewModalOpen(true)}
+                      className="px-5 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-semibold flex items-center gap-2 shadow-md hover:shadow-lg"
+                    >
+                      <Star className="w-5 h-5" />
+                      Viết đánh giá
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        alert("⚠️ Bạn chỉ có thể đánh giá tour sau khi đã thanh toán!\n\nVui lòng thanh toán tour trước khi đánh giá.");
+                        navigate("/profile?tab=payments");
+                      }}
+                      className="px-5 py-2.5 bg-gray-300 text-gray-600 rounded-lg cursor-not-allowed transition font-semibold flex items-center gap-2"
+                      title="Bạn cần thanh toán tour trước khi đánh giá"
+                    >
+                      <Star className="w-5 h-5" />
+                      Viết đánh giá (Cần thanh toán)
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
             {reviews.length === 0 ? (
-              <p className="text-gray-500 italic py-4">
-                Chưa có đánh giá nào cho tour này.
-              </p>
+              <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                <Star className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg font-medium">
+                  Chưa có đánh giá nào cho tour này.
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                  Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!
+                </p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {reviews.map((review) => (
-                  <div
+                  <motion.div
                     key={review.review_id}
-                    className="p-5 bg-gray-50 border border-gray-200 rounded-xl"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="p-6 bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-shadow"
                   >
                     <div className="flex items-start gap-4">
-                      <img
-                        src={
-                          review.user_avatar ||
-                          "https://i.pravatar.cc/50"
-                        }
-                        alt={review.user_name}
-                        className="w-12 h-12 rounded-full"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold text-gray-800">
-                            {review.user_name || "Người dùng"}
-                          </h4>
-                          <span className="text-sm text-gray-500">
-                            {new Date(review.created_at).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </span>
+                      {/* Avatar */}
+                      <div className="flex-shrink-0">
+                        <img
+                          src={
+                            review.user_avatar ||
+                            review.avatar_url ||
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(review.user_name || "User")}&background=ff6b35&color=fff&size=128`
+                          }
+                          alt={review.user_name}
+                          className="w-14 h-14 rounded-full border-2 border-orange-200 object-cover"
+                        />
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-bold text-gray-800 text-lg mb-1">
+                              {review.user_name || "Người dùng"}
+                            </h4>
+                            <div className="flex items-center gap-3">
+                              <StarRating
+                                rating={review.rating}
+                                showReviews={false}
+                                size={18}
+                              />
+                              <span className="text-sm text-gray-500">
+                                {new Date(review.created_at).toLocaleDateString(
+                                  "vi-VN",
+                                  {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  }
+                                )}
+                              </span>
+                              {review.updated_at && 
+                               review.updated_at !== review.created_at && (
+                                <span className="text-xs text-gray-400 italic">
+                                  (Đã chỉnh sửa)
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="mb-2">
-                          <StarRating
-                            rating={review.rating}
-                            showReviews={false}
-                            size={18}
-                          />
-                        </div>
-                        {review.comment && (
-                          <p className="text-gray-700 leading-relaxed">
+                        
+                        {review.comment ? (
+                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                             {review.comment}
+                          </p>
+                        ) : (
+                          <p className="text-gray-400 italic text-sm">
+                            Không có nhận xét
                           </p>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}
