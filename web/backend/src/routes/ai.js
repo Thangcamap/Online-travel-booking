@@ -43,15 +43,13 @@ Trả về JSON (KHÔNG có text khác):
   "reason": "lý do tổng quát"
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await openai.responses.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "user", content: prompt }
-      ],
+      input: prompt,
       temperature: 0.7,
     });
     
-    const text = response.choices[0].message.content;
+    const text = response.output[0].content[0].text;
     const jsonText = text.match(/\{[\s\S]*\}/)?.[0];
     
     if (jsonText) {
@@ -189,14 +187,12 @@ Trả về JSON (KHÔNG có text khác):
   "keywords": ["tất cả keywords quan trọng"]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await openai.responses.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "user", content: prompt }
-      ],
+      input: prompt,
     });
     
-    const text = response.choices[0].message.content;
+    const text = response.output[0].content[0].text;
     const jsonText = text.match(/\{[\s\S]*\}/)?.[0];
     
     if (jsonText) {
@@ -692,24 +688,20 @@ Trả lời ngắn gọn, thân thiện (2-3 câu).`;
 
     let aiReply;
     try {
-      const completion = await openai.chat.completions.create({
+      const completion = await openai.responses.create({
         model: "gpt-4o",
-        messages: [
-          { role: "user", content: prompt }
-        ],
+        input: prompt,
         temperature: 0.7,
       });
-      aiReply = completion.choices[0].message.content;
+      aiReply = completion.output[0].content[0].text;
     } catch (err) {
       console.warn("⚠️ gpt-4o failed, using gpt-4o-mini");
-      const completion = await openai.chat.completions.create({
+      const completion = await openai.responses.create({
         model: "gpt-4o-mini",
-        messages: [
-          { role: "user", content: prompt }
-        ],
+        input: prompt,
         temperature: 0.7,
       });
-      aiReply = completion.choices[0].message.content;
+      aiReply = completion.output[0].content[0].text;
     }
 
     // Save AI response
