@@ -68,11 +68,11 @@ export const fetchPayments = async (email = null, user_id = null) => {
   return res.data?.data || res.data || [];
 };
 
-// 🔹 Xác nhận thanh toán
-export const confirmPayment = async (id) => {
-  console.log("📝 API: Confirming payment with ID:", id);
+// 🔹 Xác nhận thanh toán (có thể kèm giảm giá bằng điểm)
+export const confirmPayment = async (id, paymentData = {}) => {
+  console.log("📝 API: Confirming payment with ID:", id, "Data:", paymentData);
   try {
-    const res = await api.patch(`/${id}/confirm`);
+    const res = await api.patch(`/${id}/confirm`, paymentData);
     console.log("✅ API: Payment confirmed successfully:", res.data);
     return res.data;
   } catch (error) {

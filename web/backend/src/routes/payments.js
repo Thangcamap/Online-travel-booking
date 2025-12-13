@@ -162,28 +162,41 @@ router.get("/", async (req, res) => {
 });
 
 // ===========================================
-// ✅ XÁC NHẬN THANH TOÁN
+// ✅ XÁC NHẬN THANH TOÁN (có thể kèm giảm giá bằng điểm)
 // ===========================================
 router.patch("/:id/confirm", async (req, res) => {
+  const connection = await pool.getConnection();
   try {
-    const { id } = req.params;
-    console.log("📝 PATCH /payments/:id/confirm - Payment ID:", id);
+    await connection.beginTransaction();
     
-    // Kiểm tra xem payment có tồn tại không
-    const [checkPayment] = await pool.query(
-      "SELECT payment_id, status FROM payments WHERE payment_id = ?",
+    const { id } = req.params;
+    const { points_used = 0, discount_amount = 0, final_amount } = req.body;
+    
+    console.log("📝 PATCH /payments/:id/confirm - Payment ID:", id);
+    console.log("📝 Discount info:", { points_used, discount_amount, final_amount });
+    
+    // Kiểm tra xem payment có tồn tại không và lấy thông tin booking
+    const [checkPayment] = await connection.query(
+      `SELECT p.payment_id, p.status, p.amount, b.user_id 
+       FROM payments p
+       LEFT JOIN bookings b ON p.booking_id = b.booking_id
+       WHERE p.payment_id = ?`,
       [id]
     );
     
     if (checkPayment.length === 0) {
       console.error("❌ Payment not found:", id);
+      await connection.rollback();
       return res.status(404).json({ error: "Không tìm thấy thanh toán cần xác nhận" });
     }
     
-    console.log("📊 Payment found:", checkPayment[0]);
+    const payment = checkPayment[0];
+    const user_id = payment.user_id;
+    
+    console.log("📊 Payment found:", payment);
     
     // Kiểm tra xem bảng payments có cột status không
-    const [statusColumns] = await pool.query(
+    const [statusColumns] = await connection.query(
       `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
        WHERE TABLE_SCHEMA = DATABASE() 
        AND TABLE_NAME = 'payments' 
@@ -192,26 +205,89 @@ router.patch("/:id/confirm", async (req, res) => {
     
     if (statusColumns.length === 0) {
       console.error("❌ Column 'status' does not exist in payments table");
+      await connection.rollback();
       return res.status(500).json({ 
         error: "Cột 'status' không tồn tại trong bảng payments. Vui lòng kiểm tra database schema." 
       });
     }
     
-    const [result] = await pool.query(
-      "UPDATE payments SET status='paid', updated_at=NOW() WHERE payment_id=?",
-      [id]
+    // Nếu có sử dụng điểm, kiểm tra và trừ điểm
+    if (points_used > 0 && user_id) {
+      // Kiểm tra điểm có đủ không
+      const [userPoints] = await connection.query(
+        `SELECT available_points FROM user_points WHERE user_id = ?`,
+        [user_id]
+      );
+      
+      if (userPoints.length === 0 || userPoints[0].available_points < points_used) {
+        await connection.rollback();
+        return res.status(400).json({
+          success: false,
+          error: `Không đủ điểm. Bạn có ${userPoints[0]?.available_points || 0} điểm, cần ${points_used} điểm.`
+        });
+      }
+      
+      // Trừ điểm
+      const transaction_id = `PT${Date.now()}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+      
+      // Thêm transaction (số âm)
+      await connection.query(
+        `INSERT INTO point_transactions (
+          transaction_id,
+          user_id,
+          points,
+          transaction_type,
+          source_type,
+          source_id,
+          description
+        ) VALUES (?, ?, ?, 'used', 'payment', ?, ?)`,
+        [
+          transaction_id,
+          user_id,
+          -points_used,
+          id,
+          `Sử dụng ${points_used.toLocaleString('vi-VN')} điểm để giảm giá ${discount_amount.toLocaleString('vi-VN')}đ`
+        ]
+      );
+      
+      // Cập nhật user_points
+      await connection.query(
+        `UPDATE user_points 
+         SET available_points = available_points - ?,
+             total_points = total_points - ?
+         WHERE user_id = ?`,
+        [points_used, points_used, user_id]
+      );
+      
+      console.log(`✅ Đã trừ ${points_used} điểm cho user ${user_id}`);
+    }
+    
+    // Cập nhật payment status
+    const updateAmount = final_amount !== undefined ? final_amount : payment.amount;
+    const [result] = await connection.query(
+      "UPDATE payments SET status='paid', amount=?, updated_at=NOW() WHERE payment_id=?",
+      [updateAmount, id]
     );
 
     console.log("📊 Update result:", result);
 
     if (result.affectedRows === 0) {
       console.error("❌ No rows affected. Payment ID:", id);
+      await connection.rollback();
       return res.status(404).json({ error: "Không thể cập nhật thanh toán. Vui lòng kiểm tra lại." });
     }
 
+    await connection.commit();
     console.log("✅ Payment confirmed successfully:", id);
-    res.json({ success: true, message: "✅ Thanh toán đã được xác nhận!" });
+    
+    res.json({ 
+      success: true, 
+      message: "✅ Thanh toán đã được xác nhận!",
+      points_used: points_used || 0,
+      discount_amount: discount_amount || 0
+    });
   } catch (err) {
+    await connection.rollback();
     console.error("❌ [PATCH /confirm] Lỗi:", err);
     console.error("❌ Error details:", {
       message: err.message,
@@ -224,6 +300,8 @@ router.patch("/:id/confirm", async (req, res) => {
       error: "Lỗi xác nhận thanh toán", 
       details: err.sqlMessage || err.message 
     });
+  } finally {
+    connection.release();
   }
 });
 

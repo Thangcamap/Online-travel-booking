@@ -75,16 +75,16 @@ export default function ToursPage() {
 
           <nav className="hidden sm:flex gap-6 text-gray-700 font-medium">
             <Link to="/home" className="hover:text-orange-500">
-              Home
+              HOME
             </Link>
             <Link to="/tours" className="text-orange-600 font-semibold">
-              Tours
+              TOURS
             </Link>
-            <Link to="/about" className="hover:text-orange-500">
-              About
+            <Link to="/about" className="hover:text-orange-600">
+              ABOUT
             </Link>
-            <Link to="/profile?tab=payments" className="hover:text-orange-500">
-              Payments
+            <Link to="/profile?tab=payments" className="hover:text-orange-600">
+              BOOKINGS
             </Link>
           </nav>
 
@@ -130,14 +130,7 @@ export default function ToursPage() {
                         👤 Hồ sơ cá nhân
                       </button>
                     </Menu.Item>
-                    <Menu.Item>
-                      <button
-                        onClick={() => navigate("/profile?tab=payments")}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                      >
-                        💳 Thanh toán của tôi
-                      </button>
-                    </Menu.Item>
+                    
                     <Menu.Item>
                       <button
                         onClick={handleLogout}

@@ -43,13 +43,15 @@ Trả về JSON (KHÔNG có text khác):
   "reason": "lý do tổng quát"
 }`;
 
-    const response = await openai.responses.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      input: prompt,
+      messages: [
+        { role: "user", content: prompt }
+      ],
       temperature: 0.7,
     });
     
-    const text = response.output[0].content[0].text;
+    const text = response.choices[0].message.content;
     const jsonText = text.match(/\{[\s\S]*\}/)?.[0];
     
     if (jsonText) {
@@ -187,12 +189,14 @@ Trả về JSON (KHÔNG có text khác):
   "keywords": ["tất cả keywords quan trọng"]
 }`;
 
-    const response = await openai.responses.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      input: prompt,
+      messages: [
+        { role: "user", content: prompt }
+      ],
     });
     
-    const text = response.output[0].content[0].text;
+    const text = response.choices[0].message.content;
     const jsonText = text.match(/\{[\s\S]*\}/)?.[0];
     
     if (jsonText) {
@@ -688,20 +692,24 @@ Trả lời ngắn gọn, thân thiện (2-3 câu).`;
 
     let aiReply;
     try {
-      const completion = await openai.responses.create({
+      const completion = await openai.chat.completions.create({
         model: "gpt-4o",
-        input: prompt,
+        messages: [
+          { role: "user", content: prompt }
+        ],
         temperature: 0.7,
       });
-      aiReply = completion.output[0].content[0].text;
+      aiReply = completion.choices[0].message.content;
     } catch (err) {
       console.warn("⚠️ gpt-4o failed, using gpt-4o-mini");
-      const completion = await openai.responses.create({
+      const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
-        input: prompt,
+        messages: [
+          { role: "user", content: prompt }
+        ],
         temperature: 0.7,
       });
-      aiReply = completion.output[0].content[0].text;
+      aiReply = completion.choices[0].message.content;
     }
 
     // Save AI response
