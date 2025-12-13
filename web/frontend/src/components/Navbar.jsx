@@ -34,14 +34,14 @@ const Navbar = () => {
 
           {/* CENTER: Navigation links */}
           <nav className="hidden md:flex gap-6 text-gray-700 font-medium">
-            <Link to="/home" className="hover:text-orange-500 transition-colors">
-              Home
+            <Link to="/home" className="hover:text-orange-600 transition-colors">
+              HOME
             </Link>
-            <Link to="/about" className="hover:text-orange-500 transition-colors">
-              About
+            <Link to="/about" className="hover:text-orange-600 transition-colors">
+              ABOUT
             </Link>
-            <Link to="/contact" className="hover:text-orange-500 transition-colors">
-              Contact
+            <Link to="/contact" className="hover:text-orange-600 transition-colors">
+              CONTACT
             </Link>
           </nav>
 
@@ -81,18 +81,7 @@ const Navbar = () => {
           </p>
         </div>
         <div className="py-1">
-          <Menu.Item>
-            {({ active }) => (
-              <button
-                onClick={() => navigate("/profile?tab=payments")}
-                className={`${
-                  active ? "bg-gray-100" : ""
-                } block w-full text-left px-4 py-2 text-sm text-gray-700`}
-              >
-                💳 Thanh toán của tôi
-              </button>
-            )}
-          </Menu.Item>
+          
           <Menu.Item>
             {({ active }) => (
               <button

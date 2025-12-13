@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import useAuthUserStore from "@/stores/useAuthUserStore";
 import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api-client";
-import { Calendar, MapPin, DollarSign, Package, Star, Gift, TrendingUp, MessageSquare, QrCode, FileText, Trash2, Edit2, CreditCard, Award, Sparkles } from "lucide-react";
+import { Calendar, MapPin, DollarSign, Package, Star, Gift, TrendingUp, MessageSquare, QrCode, FileText, Trash2, Edit2, CreditCard } from "lucide-react";
 import ReviewModal from "@/features/reviews/components/ReviewModal";
 import StarRating from "@/components/StarRating";
 import { getUserPoints, getPointTransactions } from "@/features/points/api/points-api";
@@ -60,6 +60,12 @@ const ProfilePage = () => {
   const [editData, setEditData] = useState({ payment_id: "", method: "", amount: 0 });
   const [saving, setSaving] = useState(false);
   const [bookingReviews, setBookingReviews] = useState({}); // Lưu reviews cho từng booking
+  
+  // State cho tính năng giảm giá bằng điểm
+  const [usePointsDiscount, setUsePointsDiscount] = useState(false);
+  const [pointsToUse, setPointsToUse] = useState(0);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [finalAmount, setFinalAmount] = useState(0);
 
   // Fetch user bookings
   const { data: bookingsData, isLoading, isError, error, refetch: refetchBookings } = useQuery({
@@ -188,27 +194,89 @@ const ProfilePage = () => {
     setReviewModalOpen(true);
   };
 
+  // Helper: Tính toán giảm giá dựa trên điểm
+  const calculateDiscount = (availablePoints) => {
+    if (availablePoints >= 30000) return { points: 30000, discountPercent: 30 };
+    if (availablePoints >= 20000) return { points: 20000, discountPercent: 20 };
+    if (availablePoints >= 10000) return { points: 10000, discountPercent: 10 };
+    if (availablePoints >= 5000) return { points: 5000, discountPercent: 5 };
+    return { points: 0, discountPercent: 0 };
+  };
+
   // Payment handlers
   const openPaymentModal = (payment) => {
     setCurrentPayment(payment);
     setPayStatus({ text: "⏳ Đang chờ thanh toán...", cls: "text-yellow-500" });
+    
+    // Reset discount state
+    setUsePointsDiscount(false);
+    setPointsToUse(0);
+    setDiscountAmount(0);
+    setFinalAmount(Number(payment.amount || 0));
+    
     setModalOpen(true);
   };
 
   const closePaymentModal = () => {
     setModalOpen(false);
     setCurrentPayment(null);
+    setUsePointsDiscount(false);
+    setPointsToUse(0);
+    setDiscountAmount(0);
+    setFinalAmount(0);
+  };
+
+  // Xử lý khi người dùng chọn/bỏ chọn sử dụng điểm
+  const handleTogglePointsDiscount = () => {
+    if (!usePointsDiscount) {
+      // Bật giảm giá - luôn chọn mức tối đa có thể (tối đa 30000 điểm = 30%)
+      const availablePoints = points.available_points || 0;
+      const discountInfo = calculateDiscount(availablePoints);
+      
+      if (discountInfo.points === 0) {
+        alert("Bạn cần ít nhất 5,000 điểm để được giảm giá!");
+        return;
+      }
+      
+      // Nếu có nhiều hơn 30000 điểm, vẫn chỉ dùng 30000 điểm (tối đa)
+      const pointsToUseValue = Math.min(discountInfo.points, 30000);
+      const discountPercent = discountInfo.discountPercent;
+      
+      setPointsToUse(pointsToUseValue);
+      const discount = (Number(currentPayment?.amount || 0) * discountPercent) / 100;
+      setDiscountAmount(discount);
+      setFinalAmount(Number(currentPayment?.amount || 0) - discount);
+      setUsePointsDiscount(true);
+    } else {
+      // Tắt giảm giá
+      setUsePointsDiscount(false);
+      setPointsToUse(0);
+      setDiscountAmount(0);
+      setFinalAmount(Number(currentPayment?.amount || 0));
+    }
   };
 
   const onConfirmPayment = async () => {
     if (!currentPayment) return;
     try {
       console.log("📝 Confirming payment:", currentPayment.payment_id);
-      const result = await confirmPayment(currentPayment.payment_id);
+      
+      // Gửi thông tin giảm giá nếu có
+      const paymentData = {
+        points_used: usePointsDiscount ? pointsToUse : 0,
+        discount_amount: usePointsDiscount ? discountAmount : 0,
+        final_amount: usePointsDiscount ? finalAmount : Number(currentPayment.amount)
+      };
+      
+      const result = await confirmPayment(currentPayment.payment_id, paymentData);
       console.log("✅ Payment confirmed:", result);
       setPayStatus({ text: "✅ Thanh toán thành công!", cls: "text-green-600" });
+      
+      // Refresh points sau khi thanh toán
+      qc.invalidateQueries(["userPoints", authUser?.user_id]);
       qc.invalidateQueries(["payments", authUser?.user_id, authUser?.email]);
       qc.invalidateQueries(["userBookings", authUser?.user_id]);
+      
       setTimeout(() => {
         closePaymentModal();
         showInvoice(currentPayment.payment_id);
@@ -264,53 +332,6 @@ const ProfilePage = () => {
     }
   };
 
-  // Xác định level dựa trên điểm tích lũy
-  const getUserLevel = (lifetimePoints) => {
-    const points = lifetimePoints || 0;
-    if (points >= 20000) {
-      return {
-        name: "Kim Cương",
-        icon: "💎",
-        color: "from-purple-500 to-indigo-600",
-        borderColor: "border-purple-400",
-        bgColor: "bg-gradient-to-r from-purple-50 to-indigo-50",
-        textColor: "text-purple-700",
-        badgeColor: "bg-gradient-to-r from-purple-500 to-indigo-600",
-      };
-    } else if (points >= 10000) {
-      return {
-        name: "Vàng",
-        icon: "🥇",
-        color: "from-yellow-400 to-orange-500",
-        borderColor: "border-yellow-400",
-        bgColor: "bg-gradient-to-r from-yellow-50 to-orange-50",
-        textColor: "text-yellow-700",
-        badgeColor: "bg-gradient-to-r from-yellow-400 to-orange-500",
-      };
-    } else if (points >= 5000) {
-      return {
-        name: "Bạc",
-        icon: "🥈",
-        color: "from-gray-400 to-gray-600",
-        borderColor: "border-gray-400",
-        bgColor: "bg-gradient-to-r from-gray-50 to-slate-50",
-        textColor: "text-gray-700",
-        badgeColor: "bg-gradient-to-r from-gray-400 to-gray-600",
-      };
-    } else {
-      return {
-        name: "Đồng",
-        icon: "🥉",
-        color: "from-orange-300 to-orange-500",
-        borderColor: "border-orange-300",
-        bgColor: "bg-gradient-to-r from-orange-50 to-amber-50",
-        textColor: "text-orange-700",
-        badgeColor: "bg-gradient-to-r from-orange-300 to-orange-500",
-      };
-    }
-  };
-
-  const userLevel = getUserLevel(points.lifetime_points || 0);
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -360,104 +381,47 @@ const ProfilePage = () => {
       <Navbar />
 
       <div className="container mx-auto px-6 py-8">
-        {/* Header - Refactored với Level Badge */}
-        <div className={`bg-gradient-to-br ${userLevel.bgColor} rounded-2xl shadow-lg p-6 mb-6 border-2 ${userLevel.borderColor}`}>
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-md p-6 mb-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            {/* Avatar với border theo level */}
+            {/* Avatar */}
             <div className="relative">
-              <img
+            <img
                 src={authUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authUser.name || "User")}&background=ff6b35&color=fff&size=128`}
-                alt={authUser.name}
-                className={`w-24 h-24 rounded-full border-4 ${userLevel.borderColor} shadow-lg object-cover`}
+              alt={authUser.name}
+                className="w-24 h-24 rounded-full border-4 border-orange-400 shadow-lg object-cover"
               />
-              {/* Level Badge trên avatar */}
-              <div className={`absolute -bottom-2 -right-2 ${userLevel.badgeColor} text-white rounded-full p-2 shadow-lg border-2 border-white`}>
-                <span className="text-2xl">{userLevel.icon}</span>
-              </div>
             </div>
 
             {/* Thông tin user */}
             <div className="flex-1 w-full">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl font-bold text-gray-800">{authUser.name}</h1>
-                    {/* Level Badge */}
-                    <span className={`px-4 py-1.5 rounded-full text-sm font-bold text-white ${userLevel.badgeColor} shadow-md flex items-center gap-1.5`}>
-                      <Award className="w-4 h-4" />
-                      {userLevel.name}
-                    </span>
-                  </div>
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">{authUser.name}</h1>
                   <p className="text-gray-600 mb-1">{authUser.email}</p>
-                  <p className="text-sm text-gray-500">{authUser.phone_number}</p>
-                </div>
+              <p className="text-sm text-gray-500">{authUser.phone_number}</p>
+            </div>
 
                 {/* Điểm tích lũy */}
-                <div className={`bg-white/80 backdrop-blur-sm rounded-xl p-4 border-2 ${userLevel.borderColor} shadow-md min-w-[200px]`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Gift className={`w-5 h-5 ${userLevel.textColor}`} />
-                    <span className={`text-sm font-semibold ${userLevel.textColor}`}>Điểm tích lũy</span>
+                <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-5 text-white shadow-md min-w-[220px]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Gift className="w-6 h-6" />
+                    <span className="text-sm font-semibold">Điểm tích lũy</span>
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className={`text-3xl font-bold ${userLevel.textColor}`}>
-                      {points.lifetime_points?.toLocaleString() || 0}
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <span className="text-4xl font-bold">
+                          {points.available_points?.toLocaleString() || 0}
                     </span>
-                    <span className="text-sm text-gray-500">điểm</span>
+                    <span className="text-sm text-orange-100">điểm</span>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-gray-200">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-600">Khả dụng:</span>
-                      <span className={`font-semibold ${userLevel.textColor}`}>
+                  <div className="pt-3 border-t border-orange-400/30">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-orange-100">Khả dụng:</span>
+                      <span className="font-bold text-lg">
                         {points.available_points?.toLocaleString() || 0}
                       </span>
                     </div>
                   </div>
-                  {/* Progress bar đến level tiếp theo */}
-                  {(() => {
-                    const currentPoints = points.lifetime_points || 0;
-                    let nextLevel = 5000;
-                    let currentLevel = 0;
-                    if (currentPoints >= 20000) {
-                      nextLevel = Infinity;
-                      currentLevel = 20000;
-                    } else if (currentPoints >= 10000) {
-                      nextLevel = 20000;
-                      currentLevel = 10000;
-                    } else if (currentPoints >= 5000) {
-                      nextLevel = 10000;
-                      currentLevel = 5000;
-                    } else {
-                      nextLevel = 5000;
-                      currentLevel = 0;
-                    }
-                    const progress = nextLevel === Infinity ? 100 : ((currentPoints - currentLevel) / (nextLevel - currentLevel)) * 100;
-                    const nextLevelName = nextLevel === Infinity ? "Tối đa" : nextLevel === 20000 ? "Kim Cương" : nextLevel === 10000 ? "Vàng" : "Bạc";
-                    
-                    return nextLevel !== Infinity ? (
-                      <div className="mt-3">
-                        <div className="flex justify-between text-xs text-gray-600 mb-1">
-                          <span>Tiến tới {nextLevelName}</span>
-                          <span>{Math.min(progress, 100).toFixed(0)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-500 ${userLevel.badgeColor}`}
-                            style={{ width: `${Math.min(progress, 100)}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Còn {((nextLevel - currentPoints).toLocaleString())} điểm để lên {nextLevelName}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mt-3 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-purple-600 font-semibold">
-                          <Sparkles className="w-3 h-3" />
-                          Đã đạt level tối đa!
-                        </div>
-                      </div>
-                    );
-                  })()}
                 </div>
               </div>
             </div>
@@ -614,8 +578,8 @@ const ProfilePage = () => {
                                 <span className="text-sm">
                                   <strong>Mã booking:</strong> {booking.booking_id}
                                 </span>
-                              </div>
-                            </div>
+          </div>
+        </div>
 
                             {/* Đánh giá hiện có (nếu có) */}
                             {bookingReviews[booking.booking_id] && (
@@ -766,48 +730,48 @@ const ProfilePage = () => {
           {/* Tab: Tích điểm */}
           {activeTab === "points" && (
             <>
-              <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 mb-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-white/20 rounded-full p-4">
-                      <Gift className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold mb-1">Điểm tích lũy</h2>
-                      <p className="text-orange-100 text-sm">Đặt tour càng nhiều, điểm càng cao!</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-4xl font-bold mb-1">{points.available_points || 0}</div>
-                    <p className="text-orange-100 text-sm">điểm khả dụng</p>
-                    {points.lifetime_points > 0 && (
-                      <p className="text-orange-200 text-xs mt-1">
-                        Tổng đã tích: {points.lifetime_points} điểm
-                      </p>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Recent Transactions */}
-                {transactions.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-orange-400/30">
-                    <p className="text-sm font-semibold mb-2 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4" />
-                      Giao dịch gần đây
-                    </p>
-                    <div className="space-y-2">
-                      {transactions.slice(0, 5).map((tx) => (
-                        <div key={tx.transaction_id} className="flex justify-between items-center text-sm bg-white/10 rounded-lg p-2">
-                          <span className="text-orange-100">{tx.description || 'Giao dịch điểm'}</span>
-                          <span className={`font-semibold ${tx.points > 0 ? 'text-green-200' : 'text-red-200'}`}>
-                            {tx.points > 0 ? '+' : ''}{tx.points} điểm
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 mb-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 rounded-full p-4">
+                <Gift className="w-8 h-8" />
               </div>
+              <div>
+                <h2 className="text-xl font-semibold mb-1">Điểm tích lũy</h2>
+                <p className="text-orange-100 text-sm">Đặt tour càng nhiều, điểm càng cao!</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-4xl font-bold mb-1">{points.available_points || 0}</div>
+              <p className="text-orange-100 text-sm">điểm khả dụng</p>
+              {points.lifetime_points > 0 && (
+                <p className="text-orange-200 text-xs mt-1">
+                  Tổng đã tích: {points.lifetime_points} điểm
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {/* Recent Transactions */}
+          {transactions.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-orange-400/30">
+              <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Giao dịch gần đây
+              </p>
+              <div className="space-y-2">
+                      {transactions.slice(0, 5).map((tx) => (
+                  <div key={tx.transaction_id} className="flex justify-between items-center text-sm bg-white/10 rounded-lg p-2">
+                    <span className="text-orange-100">{tx.description || 'Giao dịch điểm'}</span>
+                    <span className={`font-semibold ${tx.points > 0 ? 'text-green-200' : 'text-red-200'}`}>
+                      {tx.points > 0 ? '+' : ''}{tx.points} điểm
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
               {transactions.length === 0 && (
                 <div className="text-center py-12">
@@ -821,81 +785,81 @@ const ProfilePage = () => {
           {/* Tab: Đánh giá */}
           {activeTab === "reviews" && (
             <>
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <MessageSquare className="w-6 h-6 text-orange-500" />
-                Lịch sử đánh giá ({reviews.length})
-              </h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <MessageSquare className="w-6 h-6 text-orange-500" />
+            Lịch sử đánh giá ({reviews.length})
+          </h2>
 
-              {reviews.length === 0 ? (
-                <div className="text-center py-12">
-                  <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">Bạn chưa có đánh giá nào.</p>
-                  <p className="text-gray-400 text-sm mt-2">Hãy đánh giá các tour đã hoàn thành để chia sẻ trải nghiệm của bạn!</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {reviews.map((review) => (
-                    <div
-                      key={review.review_id}
-                      className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition"
-                    >
-                      <div className="flex flex-col md:flex-row md:items-start gap-4">
-                        {/* Tour Image */}
-                        {review.tour_image && (
-                          <img
-                            src={review.tour_image}
-                            alt={review.tour_name}
-                            className="w-full md:w-32 h-32 object-cover rounded-lg"
-                          />
-                        )}
+          {reviews.length === 0 ? (
+            <div className="text-center py-12">
+              <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">Bạn chưa có đánh giá nào.</p>
+              <p className="text-gray-400 text-sm mt-2">Hãy đánh giá các tour đã hoàn thành để chia sẻ trải nghiệm của bạn!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div
+                  key={review.review_id}
+                  className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition"
+                >
+                  <div className="flex flex-col md:flex-row md:items-start gap-4">
+                    {/* Tour Image */}
+                    {review.tour_image && (
+                      <img
+                        src={review.tour_image}
+                        alt={review.tour_name}
+                        className="w-full md:w-32 h-32 object-cover rounded-lg"
+                      />
+                    )}
 
-                        {/* Review Content */}
+                    {/* Review Content */}
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                                {review.tour_name || "Tour không xác định"}
-                              </h3>
-                              <div className="flex items-center gap-3 mb-2">
-                                <StarRating 
-                                  rating={review.rating} 
-                                  totalReviews={0} 
-                                  showReviews={false}
-                                  size={20}
-                                />
-                                <span className="text-sm text-gray-600">
-                                  {formatDate(review.created_at)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {review.comment && (
-                            <p className="text-gray-700 mb-3 leading-relaxed">
-                              {review.comment}
-                            </p>
-                          )}
-
-                          <div className="flex items-center gap-3 mt-4">
-                            <button
-                              onClick={() => navigate(`/tours/${review.tour_id}`)}
-                              className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
-                            >
-                              <MapPin className="w-4 h-4" />
-                              Xem tour
-                            </button>
-                            {review.updated_at && review.updated_at !== review.created_at && (
-                              <span className="text-xs text-gray-400">
-                                (Đã chỉnh sửa)
-                              </span>
-                            )}
+                          <h3 className="text-lg font-bold text-gray-800 mb-2">
+                            {review.tour_name || "Tour không xác định"}
+                          </h3>
+                          <div className="flex items-center gap-3 mb-2">
+                            <StarRating 
+                              rating={review.rating} 
+                              totalReviews={0} 
+                              showReviews={false}
+                              size={20}
+                            />
+                            <span className="text-sm text-gray-600">
+                              {formatDate(review.created_at)}
+                            </span>
                           </div>
                         </div>
                       </div>
+
+                      {review.comment && (
+                        <p className="text-gray-700 mb-3 leading-relaxed">
+                          {review.comment}
+                        </p>
+                      )}
+
+                      <div className="flex items-center gap-3 mt-4">
+                        <button
+                          onClick={() => navigate(`/tours/${review.tour_id}`)}
+                          className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+                        >
+                          <MapPin className="w-4 h-4" />
+                          Xem tour
+                        </button>
+                        {review.updated_at && review.updated_at !== review.created_at && (
+                          <span className="text-xs text-gray-400">
+                            (Đã chỉnh sửa)
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              )}
+              ))}
+            </div>
+          )}
             </>
           )}
         </div>
@@ -941,21 +905,93 @@ const ProfilePage = () => {
       )}
 
       {/* Payment Modal - QR Thanh toán */}
-      {modalOpen && currentPayment && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="absolute inset-0 bg-black opacity-30" onClick={closePaymentModal}></div>
-          <div className="bg-white rounded-lg shadow p-6 w-full max-w-md z-10">
-            <h3 className="text-lg font-semibold mb-3">Thanh toán QR</h3>
-            <p><b>Tour:</b> {currentPayment.tour_name}</p>
-            <p><b>Số tiền:</b> {Number(currentPayment.amount).toLocaleString("vi-VN")}đ</p>
+      {modalOpen && currentPayment && (() => {
+        const discountInfo = calculateDiscount(points.available_points || 0);
+        const canUseDiscount = discountInfo.points > 0;
+        
+        return (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="absolute inset-0 bg-black opacity-30" onClick={closePaymentModal}></div>
+            <div className="bg-white rounded-lg shadow p-6 w-full max-w-md z-10 max-h-[90vh] overflow-y-auto">
+              <h3 className="text-lg font-semibold mb-3">Thanh toán QR</h3>
+              <p><b>Tour:</b> {currentPayment.tour_name}</p>
+              <p><b>Số tiền gốc:</b> {Number(currentPayment.amount).toLocaleString("vi-VN")}đ</p>
+              
+              {/* Đề xuất giảm giá bằng điểm */}
+              {canUseDiscount && (
+                <div className="mt-4 p-4 bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-300 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id="usePointsDiscount"
+                      checked={usePointsDiscount}
+                      onChange={handleTogglePointsDiscount}
+                      className="mt-1 w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="usePointsDiscount" className="cursor-pointer">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Gift className="w-5 h-5 text-orange-600" />
+                          <span className="font-semibold text-orange-800">
+                            Sử dụng {discountInfo.points.toLocaleString()} điểm để giảm {discountInfo.discountPercent}%
+                          </span>
+                        </div>
+                        <p className="text-sm text-orange-700">
+                          Bạn có {points.available_points?.toLocaleString() || 0} điểm khả dụng
+                        </p>
+                      </label>
+                    </div>
+                  </div>
+                  
+                  {usePointsDiscount && (
+                    <div className="mt-3 pt-3 border-t border-orange-300">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-700">Số tiền gốc:</span>
+                          <span className="font-medium">{Number(currentPayment.amount).toLocaleString("vi-VN")}đ</span>
+                        </div>
+                        <div className="flex justify-between text-green-600">
+                          <span>Giảm giá ({discountInfo.discountPercent}%):</span>
+                          <span className="font-bold">-{discountAmount.toLocaleString("vi-VN")}đ</span>
+                        </div>
+                        <div className="flex justify-between pt-2 border-t border-orange-200">
+                          <span className="font-semibold text-gray-800">Tổng thanh toán:</span>
+                          <span className="font-bold text-lg text-orange-600">
+                            {finalAmount.toLocaleString("vi-VN")}đ
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-600 mt-2">
+                          Số điểm sẽ bị trừ: <strong>{pointsToUse.toLocaleString()}</strong> điểm
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {!canUseDiscount && points.available_points > 0 && (
+                <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    Bạn cần ít nhất 5,000 điểm để được giảm giá. Hiện tại bạn có {points.available_points?.toLocaleString() || 0} điểm.
+                  </p>
+                </div>
+              )}
 
             <div className="qr my-4 flex justify-center">
               <img
-                src={`https://img.vietqr.io/image/970436-9392723042-qr_only.png?amount=${currentPayment.amount}&addInfo=ThanhToan_${currentPayment.payment_id}`}
+                src={`https://img.vietqr.io/image/970436-9392723042-qr_only.png?amount=${usePointsDiscount ? finalAmount : currentPayment.amount}&addInfo=ThanhToan_${currentPayment.payment_id}`}
                 alt="QR"
                 className="rounded shadow-md"
               />
             </div>
+            
+            {usePointsDiscount && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Lưu ý:</strong> Vui lòng thanh toán số tiền <strong>{finalAmount.toLocaleString("vi-VN")}đ</strong> (đã giảm giá).
+                </p>
+              </div>
+            )}
 
             <label className="block text-sm font-medium mb-1">📷 Ảnh xác minh thanh toán:</label>
             <input
@@ -998,7 +1034,8 @@ const ProfilePage = () => {
             {payStatus.text && <div className={`mt-2 text-sm ${payStatus.cls}`}>{payStatus.text}</div>}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Modal Sửa thanh toán */}
       {editOpen && (
