@@ -269,7 +269,7 @@ const filteredTours = tours.filter((t) => {
 
                     {tour.departure_location && (
   <p className="text-sm text-gray-500 mb-3">
-    xuất phát : <span className="font-medium">{getCity(tour.departure_location)}</span>
+    xuất phát : <span className="font-medium">{tour.departure_location}</span>
   </p>
 )}
 

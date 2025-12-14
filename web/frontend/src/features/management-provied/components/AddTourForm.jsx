@@ -271,17 +271,18 @@ export default function AddTourForm({ providerId, onAdded }) {
           {activeTab === "dates" && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ngày Bắt Đầu *</label>
-                  <input
-                    type="date"
-                    name="start_date"
-                    value={form.start_date}
-                    onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 ${errors.start_date ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.start_date && <p className="text-red-500 text-sm mt-1">{errors.start_date}</p>}
-                </div>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Ngày Bắt Đầu *</label>
+  <input
+    type="date"
+    name="start_date"
+    value={form.start_date}
+    onChange={handleChange}
+    min={new Date().toISOString().split('T')[0]}
+    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 ${errors.start_date ? 'border-red-500' : 'border-gray-300'}`}
+  />
+  {errors.start_date && <p className="text-red-500 text-sm mt-1">{errors.start_date}</p>}
+</div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ngày Kết Thúc *</label>
                   <input

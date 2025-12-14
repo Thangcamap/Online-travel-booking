@@ -39,6 +39,7 @@ router.get("/tours", async (req, res) => {
         AND tp.approval_status = 'approved'         
         AND tp.status = 'active'                   
         AND u.status = 'active' 
+        AND DATE(t.start_date) >= CURDATE()
       GROUP BY t.tour_id
       ORDER BY t.created_at DESC`
     );
