@@ -197,8 +197,66 @@ router.patch("/:id/confirm", async (req, res) => {
       });
     }
     
+    // Kiểm tra payment status hiện tại
+    if (checkPayment[0].status === 'paid') {
+      return res.status(400).json({ error: "Thanh toán này đã được xác nhận trước đó." });
+    }
+
+    // 🔹 Kiểm tra xem payment đã có payment_image chưa
+    const [paymentColumns] = await pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() 
+       AND TABLE_NAME = 'payments' 
+       AND COLUMN_NAME = 'payment_image'`
+    );
+    
+    if (paymentColumns.length > 0) {
+      const [paymentData] = await pool.query(
+        "SELECT payment_image FROM payments WHERE payment_id = ?",
+        [id]
+      );
+      
+      if (paymentData.length > 0 && (!paymentData[0].payment_image || paymentData[0].payment_image === null || paymentData[0].payment_image === 'NULL')) {
+        return res.status(400).json({ 
+          error: "Vui lòng upload ảnh xác minh thanh toán trước khi gửi xác nhận!" 
+        });
+      }
+    }
+
+    // 🔹 User confirm payment → giảm slot ngay lập tức (tạm thời)
+    // Nếu admin từ chối thì slot sẽ được cộng lại
+    // Status vẫn giữ "unpaid" để admin biết đây là payment đã được user confirm và đang chờ duyệt
+    
+    // Lấy booking_id và tour_id để giảm slot
+    const [bookingInfo] = await pool.query(
+      `SELECT b.booking_id, b.tour_id 
+       FROM payments p
+       JOIN bookings b ON p.booking_id = b.booking_id
+       WHERE p.payment_id = ?`,
+      [id]
+    );
+    
+    if (bookingInfo.length > 0) {
+      const tour_id = bookingInfo[0].tour_id;
+      
+      // Kiểm tra và giảm slot
+      const [tourSlots] = await pool.query(
+        `SELECT available_slots FROM tours WHERE tour_id = ?`,
+        [tour_id]
+      );
+      
+      if (tourSlots.length > 0 && tourSlots[0].available_slots > 0) {
+        // Import adminModel để dùng updateTourSlots
+        const adminModel = require("../models/adminModel");
+        await adminModel.updateTourSlots(tour_id, -1);
+        console.log(`✅ User confirmed payment ${id}: Reduced 1 slot from tour ${tour_id} (temporary, pending admin approval)`);
+      } else {
+        console.log("⚠️ Warning: Tour has no available slots:", tour_id);
+      }
+    }
+    
     const [result] = await pool.query(
-      "UPDATE payments SET status='paid', updated_at=NOW() WHERE payment_id=?",
+      "UPDATE payments SET updated_at=NOW() WHERE payment_id=?",
       [id]
     );
 
@@ -210,7 +268,7 @@ router.patch("/:id/confirm", async (req, res) => {
     }
 
     console.log("✅ Payment confirmed successfully:", id);
-    res.json({ success: true, message: "✅ Thanh toán đã được xác nhận!" });
+    res.json({ success: true, message: "✅ Thanh toán đã được xác nhận! Đang chờ admin duyệt." });
   } catch (err) {
     console.error("❌ [PATCH /confirm] Lỗi:", err);
     console.error("❌ Error details:", {

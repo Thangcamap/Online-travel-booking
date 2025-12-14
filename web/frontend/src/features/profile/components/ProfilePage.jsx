@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import useAuthUserStore from "@/stores/useAuthUserStore";
 import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api-client";
+import { socket } from "@/lib/socket";
 import { Calendar, MapPin, DollarSign, Package, Star, Gift, TrendingUp, MessageSquare, QrCode, FileText, Trash2, Edit2, CreditCard, Award, Sparkles } from "lucide-react";
 import ReviewModal from "@/features/reviews/components/ReviewModal";
 import StarRating from "@/components/StarRating";
@@ -46,6 +47,48 @@ const ProfilePage = () => {
       setActiveTab(tab);
     }
   }, [searchParams]);
+
+  // Lắng nghe payment status change từ socket
+  useEffect(() => {
+    const handlePaymentApproved = (event) => {
+      const paymentData = event.detail;
+      console.log("💳 Payment approved event received:", paymentData);
+      
+      // Invalidate queries để refresh data
+      qc.invalidateQueries(["payments", authUser?.user_id, authUser?.email]);
+      qc.invalidateQueries(["userBookings", authUser?.user_id]);
+      qc.invalidateQueries(["userPoints", authUser?.user_id]);
+      
+      // Tự động chuyển sang tab payments nếu đang ở tab khác
+      if (activeTab !== "payments") {
+        setActiveTab("payments");
+        navigate("/profile?tab=payments", { replace: true });
+      }
+    };
+
+    const handlePaymentRejected = (event) => {
+      const paymentData = event.detail;
+      console.log("💳 Payment rejected event received:", paymentData);
+      
+      // Invalidate queries để refresh data
+      qc.invalidateQueries(["payments", authUser?.user_id, authUser?.email]);
+      qc.invalidateQueries(["userBookings", authUser?.user_id]);
+      
+      // Tự động chuyển sang tab payments nếu đang ở tab khác
+      if (activeTab !== "payments") {
+        setActiveTab("payments");
+        navigate("/profile?tab=payments", { replace: true });
+      }
+    };
+
+    window.addEventListener("payment_approved", handlePaymentApproved);
+    window.addEventListener("payment_rejected", handlePaymentRejected);
+    
+    return () => {
+      window.removeEventListener("payment_approved", handlePaymentApproved);
+      window.removeEventListener("payment_rejected", handlePaymentRejected);
+    };
+  }, [qc, authUser?.user_id, authUser?.email, activeTab, navigate]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedTourForReview, setSelectedTourForReview] = useState(null);
@@ -202,17 +245,44 @@ const ProfilePage = () => {
 
   const onConfirmPayment = async () => {
     if (!currentPayment) return;
+    
+    // 🔹 Kiểm tra: phải có ảnh thanh toán trước khi confirm
+    if (!currentPayment.uploadFile && !currentPayment.payment_image) {
+      alert("⚠️ Vui lòng upload ảnh xác minh thanh toán trước khi gửi xác nhận!");
+      return;
+    }
+
     try {
+      // Nếu có file mới upload nhưng chưa gửi lên server, upload trước
+      if (currentPayment.uploadFile) {
+        console.log("📤 Uploading payment image first...");
+        await uploadPaymentImage(currentPayment.payment_id, currentPayment.uploadFile);
+        console.log("✅ Payment image uploaded");
+        // Refresh payment data để có payment_image mới nhất
+        await qc.refetchQueries(["payments", authUser?.user_id, authUser?.email]);
+      }
+
+      // Kiểm tra lại payment_image sau khi upload (nếu có)
+      const updatedPayments = await fetchPayments(authUser?.email, authUser?.user_id);
+      const updatedPayment = updatedPayments.find(p => p.payment_id === currentPayment.payment_id);
+      
+      if (!updatedPayment?.payment_image && !currentPayment.payment_image) {
+        alert("⚠️ Vui lòng đợi ảnh được upload xong trước khi gửi xác nhận!");
+        return;
+      }
+
       console.log("📝 Confirming payment:", currentPayment.payment_id);
       const result = await confirmPayment(currentPayment.payment_id);
       console.log("✅ Payment confirmed:", result);
-      setPayStatus({ text: "✅ Thanh toán thành công!", cls: "text-green-600" });
+      
+      setPayStatus({ text: "✅ Đã gửi xác nhận thanh toán! Đang chờ admin duyệt...", cls: "text-blue-600" });
       qc.invalidateQueries(["payments", authUser?.user_id, authUser?.email]);
       qc.invalidateQueries(["userBookings", authUser?.user_id]);
+      
       setTimeout(() => {
         closePaymentModal();
-        showInvoice(currentPayment.payment_id);
-      }, 600);
+        // Không tự động mở invoice vì chưa được admin duyệt
+      }, 1500);
     } catch (error) {
       console.error("❌ Error confirming payment:", error);
       alert(`❌ Lỗi khi xác nhận thanh toán!\n\n${error.response?.data?.error || error.message || "Vui lòng thử lại."}`);
@@ -605,7 +675,11 @@ const ProfilePage = () => {
                                 <span className="text-sm">
                                   <strong>Tổng tiền:</strong>{" "}
                                   <span className="font-semibold text-orange-600">
-                                    {Number(booking.total_price).toLocaleString()} VND
+                                    {(() => {
+                                      // Ưu tiên: payment.amount > booking.payment_amount > booking.total_price
+                                      const amount = payment?.amount || booking.payment_amount || booking.total_price || 0;
+                                      return Number(amount).toLocaleString("vi-VN") + " VND";
+                                    })()}
                                   </span>
                                 </span>
                               </div>
@@ -980,9 +1054,18 @@ const ProfilePage = () => {
               onClick={async () => {
                 if (!currentPayment.uploadFile) return alert("Vui lòng chọn ảnh thanh toán!");
                 try {
-                  await uploadPaymentImage(currentPayment.payment_id, currentPayment.uploadFile);
-                  setPayStatus({ text: "Ảnh đã gửi thành công, chờ xác minh...", cls: "text-yellow-600" });
-                } catch {
+                  const result = await uploadPaymentImage(currentPayment.payment_id, currentPayment.uploadFile);
+                  setPayStatus({ text: "✅ Ảnh đã gửi thành công! Bấm nút bên dưới để gửi xác nhận.", cls: "text-green-600" });
+                  // Refresh payment data để cập nhật payment_image
+                  await qc.refetchQueries(["payments", authUser?.user_id, authUser?.email]);
+                  // Cập nhật currentPayment với payment_image từ server
+                  const updatedPayments = await fetchPayments(authUser?.email, authUser?.user_id);
+                  const updatedPayment = updatedPayments.find(p => p.payment_id === currentPayment.payment_id);
+                  if (updatedPayment) {
+                    setCurrentPayment(prev => ({ ...prev, payment_image: updatedPayment.payment_image }));
+                  }
+                } catch (error) {
+                  console.error("Error uploading image:", error);
                   alert("❌ Lỗi khi tải ảnh lên!");
                 }
               }}
@@ -990,11 +1073,17 @@ const ProfilePage = () => {
               📤 Gửi ảnh xác minh
             </button>
             <button 
-              className="w-full mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition" 
+              className="w-full mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed" 
               onClick={onConfirmPayment}
+              disabled={!currentPayment.uploadFile && !currentPayment.payment_image}
             >
-              ✅ Xác nhận đã thanh toán
+              ✅ Gửi xác nhận thanh toán (Chờ admin duyệt)
             </button>
+            {!currentPayment.uploadFile && !currentPayment.payment_image && (
+              <p className="text-xs text-red-500 mt-1 text-center">
+                ⚠️ Vui lòng upload ảnh thanh toán trước
+              </p>
+            )}
             {payStatus.text && <div className={`mt-2 text-sm ${payStatus.cls}`}>{payStatus.text}</div>}
           </div>
         </div>

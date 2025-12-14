@@ -72,4 +72,28 @@ export const initUserSocket = () => {
 
     window.dispatchEvent(new CustomEvent("chat_message_received", { detail: message }));
   });
+
+  /** ---------------------- LISTEN PAYMENT STATUS CHANGE ---------------------- **/
+  socket.removeAllListeners("payment_status_changed");
+  socket.on("payment_status_changed", (paymentData) => {
+    console.log("💳 Payment status changed:", paymentData);
+    
+    if (paymentData.status === "paid") {
+      // Thông báo thành công khi admin duyệt
+      toast.success(paymentData.message || "✅ Thanh toán đã được duyệt thành công!", {
+        duration: 5000,
+      });
+      
+      // Refresh payments và bookings data
+      window.dispatchEvent(new CustomEvent("payment_approved", { detail: paymentData }));
+    } else if (paymentData.status === "unpaid") {
+      // Thông báo khi admin từ chối
+      toast.error(paymentData.message || "⚠️ Thanh toán đã bị từ chối!", {
+        duration: 5000,
+      });
+      
+      // Refresh payments và bookings data
+      window.dispatchEvent(new CustomEvent("payment_rejected", { detail: paymentData }));
+    }
+  });
 };

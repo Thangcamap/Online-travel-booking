@@ -66,4 +66,15 @@ function notifyProviderStatusChange(providerId, newStatus) {
   }
 }
 
-module.exports = { initSocket, notifyUserStatusChange, notifyProviderStatusChange , getIO: () => io,};
+function notifyPaymentStatusChange(userId, paymentData) {
+  if (io) {
+    io.to(`user_${userId}`).emit("payment_status_changed", paymentData);
+    console.log(`✅ Sent payment status update to user_${userId}:`, paymentData);
+  }
+module.exports = { 
+  initSocket, 
+  notifyUserStatusChange, 
+  notifyProviderStatusChange,
+  notifyPaymentStatusChange,
+  getIO: () => io 
+};

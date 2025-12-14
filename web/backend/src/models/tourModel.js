@@ -115,11 +115,26 @@ exports.updateItineraryRecord = async (tour_id, itinerary) => {
 exports.getPublicToursRecord = async () => {
   const [tours] = await pool.query(`
     SELECT 
-      t.tour_id, t.name, t.description, t.price, t.currency,
-      t.start_date, t.end_date, i.image_url
+      t.tour_id, 
+      t.name, 
+      t.description, 
+      t.price, 
+      t.currency,
+      t.start_date, 
+      t.end_date,
+      t.available_slots,
+      (SELECT image_url FROM images 
+       WHERE entity_type='tour' AND entity_id=t.tour_id 
+       LIMIT 1) AS image_url
     FROM tours t
-    LEFT JOIN images i ON i.entity_id = t.tour_id AND i.entity_type = 'tour'
-    WHERE t.available = 1
+    LEFT JOIN tour_providers tp ON t.provider_id = tp.provider_id
+    LEFT JOIN users u ON tp.user_id = u.user_id
+    WHERE 
+      t.available = 1
+      AND (tp.provider_id IS NULL OR (tp.status = 'active' AND tp.approval_status = 'approved'))
+      AND (tp.provider_id IS NULL OR u.user_id IS NULL OR u.status = 'active')
+      AND (t.available_slots IS NULL OR t.available_slots > 0)
+    GROUP BY t.tour_id
     ORDER BY t.created_at DESC
   `);
   return tours;

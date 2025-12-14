@@ -160,6 +160,10 @@ router.post("/", async (req, res) => {
         );
         console.log("✅ Payment record created (basic schema):", payment_id, "for booking:", booking_id);
       }
+
+      // 🔹 KHÔNG giảm available_slots khi tạo payment (unpaid)
+      // Slot sẽ chỉ giảm khi admin duyệt payment (chuyển sang paid)
+      console.log("ℹ️ Payment created with status 'unpaid'. Slot will be reduced when admin approves payment.");
     } else {
       console.log("⚠️ Skipping payment creation (no amount value)");
     }
@@ -281,10 +285,13 @@ router.get("/user/:user_id", async (req, res) => {
       ''
     ) AS tour_description`);
 
+    // Thêm payment amount vào selectFields để có thể fallback nếu total_price không có
+    selectFields.push(`(SELECT p.amount FROM payments p WHERE p.booking_id = b.booking_id LIMIT 1) AS payment_amount`);
+
     // Tạo query với LEFT JOIN tours nếu không có snapshot columns
     let query;
     if (hasTourName) {
-      // Có snapshot columns, không cần JOIN
+      // Có snapshot columns, không cần JOIN tours
       query = `SELECT ${selectFields.join(', ')}
                FROM bookings b
                WHERE b.user_id = ?

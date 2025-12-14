@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTourById, fetchTours } from "../api/tours-api";
 import useAuthUserStore from "@/stores/useAuthUserStore";
-import { Calendar, MapPin, ArrowLeft, Star } from "lucide-react";
+import { Calendar, MapPin, ArrowLeft, Star, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -314,11 +314,34 @@ const TourDetailPage = () => {
               <span><b>Mã tour:</b> {tour.tour_id}</span>
             </div>
             <div className="flex items-center gap-2 text-gray-700">
-               <b>Giá:</b>{" "}
+              <b>Giá:</b>{" "}
               <span className="text-orange-600 font-semibold">
                 {Number(basePrice).toLocaleString()} {tour.currency || "VND"}
               </span>
             </div>
+            {tour.available_slots !== undefined && tour.available_slots !== null && (
+              <div className="flex items-center gap-2 text-gray-700 sm:col-span-2">
+                <Users className="w-5 h-5 text-orange-500" />
+                <span>
+                  <b>Số vé còn lại:</b>{" "}
+                  <span className={`font-semibold ${
+                    tour.available_slots === 0 
+                      ? "text-red-600" 
+                      : tour.available_slots <= 5 
+                      ? "text-orange-600" 
+                      : "text-green-600"
+                  }`}>
+                    {tour.available_slots} vé
+                  </span>
+                  {tour.available_slots === 0 && (
+                    <span className="ml-2 text-red-600 text-sm font-semibold">(Hết chỗ)</span>
+                  )}
+                  {tour.available_slots > 0 && tour.available_slots <= 5 && (
+                    <span className="ml-2 text-orange-600 text-sm font-semibold">(Sắp hết)</span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
 
           {/*  Gói ưu đãi */}
@@ -520,6 +543,47 @@ const TourDetailPage = () => {
         <div className="bg-white p-6 rounded-2xl shadow-md h-fit sticky top-20">
           <h3 className="text-xl font-semibold text-gray-800 mb-3">Thông tin đặt tour</h3>
 
+          {/* Hiển thị số vé còn lại */}
+          {tour.available_slots !== undefined && tour.available_slots !== null && (
+            <div className={`mb-4 p-3 rounded-lg border-2 ${
+              tour.available_slots === 0 
+                ? "bg-red-50 border-red-300" 
+                : tour.available_slots <= 5 
+                ? "bg-orange-50 border-orange-300" 
+                : "bg-green-50 border-green-300"
+            }`}>
+              <div className="flex items-center gap-2">
+                <Users className={`w-5 h-5 ${
+                  tour.available_slots === 0 
+                    ? "text-red-600" 
+                    : tour.available_slots <= 5 
+                    ? "text-orange-600" 
+                    : "text-green-600"
+                }`} />
+                <div>
+                  <p className={`font-semibold ${
+                    tour.available_slots === 0 
+                      ? "text-red-700" 
+                      : tour.available_slots <= 5 
+                      ? "text-orange-700" 
+                      : "text-green-700"
+                  }`}>
+                    {tour.available_slots === 0 
+                      ? "⚠️ Hết chỗ" 
+                      : tour.available_slots <= 5 
+                      ? `⚡ Còn ${tour.available_slots} vé (Sắp hết)` 
+                      : `✅ Còn ${tour.available_slots} vé`}
+                  </p>
+                  {tour.available_slots > 0 && tour.available_slots <= 5 && (
+                    <p className="text-xs text-orange-600 mt-1">
+                      Nhanh tay đặt ngay để không bỏ lỡ!
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Ngày đi */}
           <label className="font-medium text-gray-700 block mb-1"> Chọn ngày khởi hành:</label>
           <input
@@ -528,6 +592,7 @@ const TourDetailPage = () => {
             min={minDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="border rounded-lg px-3 py-2 w-full mb-4"
+            disabled={tour.available_slots === 0}
           />
 
           <p className="text-3xl font-bold text-orange-600 mb-2">
@@ -583,9 +648,14 @@ const TourDetailPage = () => {
 
           <button
             onClick={handleBookTour}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 mt-4 rounded-lg font-semibold transition"
+            disabled={tour.available_slots === 0}
+            className={`w-full py-3 mt-4 rounded-lg font-semibold transition ${
+              tour.available_slots === 0
+                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                : "bg-orange-500 hover:bg-orange-600 text-white"
+            }`}
           >
-            Đặt Tour Ngay
+            {tour.available_slots === 0 ? "Hết chỗ" : "Đặt Tour Ngay"}
           </button>
           {authUser && (
   <button
