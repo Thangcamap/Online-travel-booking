@@ -63,15 +63,12 @@ export default function UserChat({ tour_id, user_id, provider_id }) {
 
       {/* Message List */}
       <div className="flex-1 p-3 overflow-y-auto bg-gray-100">
-        {messages.map((msg) => (
+        {messages.map((msg, index) => (
           <div key={msg.message_id} className="mb-2">
 
-            {/*  Hiển thị tour giống Provider */}
-            {msg.tour_name && (
-              <div className="text-xs text-gray-500 mb-1">
-                 Tour: {msg.tour_name}
-              </div>
-            )}
+{(index === 0 || messages[index - 1]?.tour_id !== msg.tour_id) && msg.tour_name && (
+  <p className="text-xs text-gray-500 text-center my-2"> {msg.tour_name}</p>
+)}
 
             <div
               className={`max-w-[75%] px-3 py-2 rounded-lg ${
