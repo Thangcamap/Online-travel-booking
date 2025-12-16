@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import Swal from "sweetalert2";
 import useAuthUserStore from "@/stores/useAuthUserStore";   // ✅ thêm để lưu user
 import Logo2 from "@/assets/images/Logo2.png";
+import { GoogleLogin } from "@react-oauth/google";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -138,6 +139,33 @@ setTimeout(() => {
             >
               {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                try {
+                  const res = await api.post("/auth/google", {
+                    credential: credentialResponse.credential,
+                  });
+
+                  setAuthUser(res.data.user);
+                  localStorage.setItem("user", JSON.stringify(res.data.user));
+                  localStorage.setItem("token", res.data.token);
+
+                  Swal.fire({
+                    icon: "success",
+                    title: "Đăng nhập Google thành công",
+                    timer: 1500,
+                    showConfirmButton: false,
+                  });
+
+                  navigate("/home");
+                } catch (err) {
+                  Swal.fire("Lỗi", "Google login thất bại", "error");
+                }
+              }}
+              onError={() => {
+                Swal.fire("Lỗi", "Google login bị huỷ", "error");
+              }}
+            />
           </form>
           <p className="text-center text-sm text-gray-600 mt-5">
             Chưa có tài khoản?{" "}

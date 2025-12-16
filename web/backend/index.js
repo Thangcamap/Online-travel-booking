@@ -45,6 +45,9 @@ app.use("/api/providers", providerRoutes);
 const loginRoute = require("./src/routes/login");
 app.use("/api/login", loginRoute);
 
+const googleLoginRoute = require("./src/routes/google-login");
+app.use("/api/auth/google", googleLoginRoute);
+
 const registerRoute = require("./src/routes/register");
 app.use("/api/register", registerRoute);
 
