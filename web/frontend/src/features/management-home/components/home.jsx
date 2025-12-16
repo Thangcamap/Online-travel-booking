@@ -268,10 +268,10 @@ const filteredTours = tours.filter((t) => {
                     </div>
 
                     {tour.departure_location && (
-  <p className="text-sm text-gray-500 mb-3">
-    xuất phát : <span className="font-medium">{tour.departure_location}</span>
-  </p>
-)}
+                        <p className="text-sm text-gray-500 mb-3">
+                          xuất phát : <span className="font-medium">{tour.departure_location}</span>
+                        </p>
+                      )}
 
                     <div className="flex justify-between items-center">
                       <span className="text-orange-500 font-semibold">

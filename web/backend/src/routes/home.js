@@ -23,12 +23,19 @@ router.get("/tours", async (req, res) => {
           WHERE entity_type='tour' AND entity_id=t.tour_id 
           LIMIT 1) AS image_url,
         IFNULL(AVG(r.rating), 0) AS avg_rating,
-        COUNT(DISTINCT r.review_id) AS total_reviews
+        COUNT(DISTINCT r.review_id) AS total_reviews,
+        COALESCE(b.booked_count, 0) AS booked_count
       FROM tours t
       LEFT JOIN tour_providers tp ON t.provider_id = tp.provider_id
       LEFT JOIN users u ON tp.user_id = u.user_id 
       LEFT JOIN addresses a ON tp.address_id = a.address_id 
       LEFT JOIN reviews r ON t.tour_id = r.tour_id
+       LEFT JOIN (
+        SELECT tour_id, COUNT(*) as booked_count 
+        FROM bookings 
+        WHERE status IN ('confirmed', 'completed')
+        GROUP BY tour_id
+      ) b ON t.tour_id = b.tour_id
       WHERE 
         t.available = 1                             
         AND tp.status = 'active'                    
@@ -40,6 +47,7 @@ router.get("/tours", async (req, res) => {
         AND tp.status = 'active'                   
         AND u.status = 'active' 
         AND DATE(t.start_date) >= CURDATE()
+        AND (t.available_slots - COALESCE(b.booked_count, 0)) > 0
       GROUP BY t.tour_id
       ORDER BY t.created_at DESC`
     );
