@@ -71,6 +71,7 @@ function notifyPaymentStatusChange(userId, paymentData) {
     io.to(`user_${userId}`).emit("payment_status_changed", paymentData);
     console.log(`✅ Sent payment status update to user_${userId}:`, paymentData);
   }
+}
 module.exports = { 
   initSocket, 
   notifyUserStatusChange, 
