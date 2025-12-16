@@ -215,6 +215,7 @@ const handleRemoveOldImage = async (index) => {
                 <TableHead>Giá</TableHead>
                 <TableHead>Ngày bắt đầu</TableHead>
                 <TableHead>Ngày kết thúc</TableHead>
+                <TableHead>Vé còn lại</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead className="text-center">Thao tác</TableHead>
               </TableRow>
@@ -245,6 +246,22 @@ const handleRemoveOldImage = async (index) => {
                     </TableCell>
                     <TableCell>{t.start_date?.split("T")[0] || ""}</TableCell>
                     <TableCell>{t.end_date?.split("T")[0] || ""}</TableCell>
+<TableCell>
+  <div className="flex flex-col gap-1">
+    <span className="font-semibold text-orange-600 text-sm">
+      {t.available_slots} / {t.available_slots + (t.booked_count || 0)}
+    </span>
+    <div className="w-24 bg-gray-200 rounded-full h-2">
+      <div 
+        className="bg-orange-500 h-2 rounded-full" 
+        style={{width: `${((t.booked_count || 0) / (t.available_slots + (t.booked_count || 0)) * 100)}%`}}
+      ></div>
+    </div>
+    <span className="text-xs text-gray-400">
+      {((t.booked_count || 0) / (t.available_slots + (t.booked_count || 0)) * 100).toFixed(0)}% đã bán
+    </span>
+  </div>
+</TableCell>
                     <TableCell>
                       {t.available ? (
                         <span className="text-green-600 font-semibold">Hoạt động</span>

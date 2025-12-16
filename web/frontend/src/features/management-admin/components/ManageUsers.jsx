@@ -90,7 +90,7 @@ export default function ManageUsers() {
                     className="bg-red-600 hover:bg-red-700 text-white"
                     size="sm"
                   >
-                    Đình chỉ
+                    Khóa
                   </Button>
                 </td>
               </tr>
