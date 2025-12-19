@@ -58,7 +58,11 @@ router.post("/", async (req, res) => {
     }
 
     const tour = tourRows[0];
-    const booking_start_date = start_date || tour.start_date;
+    const booking_start_date =
+      start_date && start_date !== "undefined" && start_date !== "null"
+        ? start_date
+        : tour.start_date;
+
     const booking_end_date = start_date ? (() => {
       const start = new Date(start_date);
       const end = new Date(tour.end_date);

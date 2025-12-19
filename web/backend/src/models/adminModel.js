@@ -129,17 +129,6 @@ exports.getAllToursWithRevenue = async () => {
 
 // ======================== PAYMENT ==========================
 exports.getAllPayments = async () => {
-  // Kiểm tra xem bảng payments có cột payment_image không
-  const [paymentColumns] = await pool.query(
-    `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-     WHERE TABLE_SCHEMA = DATABASE() 
-     AND TABLE_NAME = 'payments' 
-     AND COLUMN_NAME = 'payment_image'`
-  );
-  
-  const hasPaymentImage = paymentColumns.length > 0;
-  const paymentImageField = hasPaymentImage ? "p.payment_image," : "NULL AS payment_image,";
-
   const [rows] = await pool.query(`
     SELECT 
       p.payment_id,
@@ -147,7 +136,7 @@ exports.getAllPayments = async () => {
       p.amount,
       p.method,
       p.status,
-      ${paymentImageField}
+      p.payment_image,
       p.created_at,
       p.updated_at,
       u.name AS user_name,
@@ -165,65 +154,27 @@ exports.getAllPayments = async () => {
   return rows;
 };
 
-// Lấy thông tin payment và tour_id, user_id, booking_id
-exports.getPaymentWithTour = async (payment_id) => {
-  const [rows] = await pool.query(
-    `SELECT 
-      p.payment_id,
-      p.status AS current_status,
-      p.booking_id,
-      b.tour_id,
-      b.user_id,
-      b.status AS booking_status,
-      t.name AS tour_name
-    FROM payments p
-    JOIN bookings b ON p.booking_id = b.booking_id
-    JOIN tours t ON b.tour_id = t.tour_id
-    WHERE p.payment_id = ?`,
-    [payment_id]
-  );
-  return rows.length > 0 ? rows[0] : null;
-};
-
-// Cập nhật available_slots của tour
-exports.updateTourSlots = async (tour_id, change) => {
-  // change: +1 để cộng, -1 để trừ
+exports.updatePaymentStatus = async (id, status, reject_reason = null) => {
   const [result] = await pool.query(
-    `UPDATE tours 
-     SET available_slots = GREATEST(0, available_slots + ?) 
-     WHERE tour_id = ?`,
-    [change, tour_id]
+    `
+    UPDATE payments
+    SET status = ?, reject_reason = ?, updated_at = NOW()
+    WHERE payment_id = ?
+    `,
+    [status, reject_reason, id]
   );
   return result;
 };
 
-exports.updatePaymentStatus = async (payment_id, status) => {
-  const [result] = await pool.query(
-    `UPDATE payments SET status = ?, updated_at = NOW() WHERE payment_id = ?`,
-    [status, payment_id]
-  );
-  return result;
-};
 
 exports.getPaymentDetail = async (payment_id) => {
-  // Kiểm tra xem bảng payments có cột payment_image không
-  const [paymentColumns] = await pool.query(
-    `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
-     WHERE TABLE_SCHEMA = DATABASE() 
-     AND TABLE_NAME = 'payments' 
-     AND COLUMN_NAME = 'payment_image'`
-  );
-  
-  const hasPaymentImage = paymentColumns.length > 0;
-  const paymentImageField = hasPaymentImage ? "p.payment_image," : "NULL AS payment_image,";
-
   const [rows] = await pool.query(
     `SELECT 
       p.payment_id,
       p.amount,
       p.method,
       p.status,
-      ${paymentImageField}
+      p.payment_image,
       p.created_at,
       u.name AS user_name,
       u.email AS user_email,

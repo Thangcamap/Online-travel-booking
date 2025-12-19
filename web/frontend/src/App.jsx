@@ -1,9 +1,11 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import CreateProvided from "./features/management-provied/components/create-provied.jsx";
+// import CreateProvided from "./features/payments/components/create-provied.jsx";
 import AdminDashboard from "./features/management-admin/components/AdminDashboard.jsx";
-import ProviderDashboard from "@/features/management-provied/components/ProviderDashboard";
+// import ProviderDashboard from "@/features/payments/components/ProviderDashboard";
+import PaymentPage from "@/features/payments/components/PaymentPage.jsx";
+import ProviderDashboard from "@/features/management-provied/components/ProviderDashboard.jsx";
 import Login from "./features/management-login/components/login.jsx";
 import Register from "./features/management-login/components/register.jsx";
 import Home from "./features/management-home/components/home.jsx";
@@ -60,7 +62,9 @@ useEffect(() => {
               <Route path="/provider-dashboard" element={<ProviderDashboard />} />
 
               {/* Các trang khác */}
-              <Route path="/" element={<CreateProvided />} />
+              {/* <Route path="/" element={<CreateProvided />} /> */}
+              <Route path="/" element={<Home />} />
+              <Route path="/payments" element={<PaymentPage />} />
               <Route path="/ai" element={<AI />} />
               <Route path="/home" element={<Home />} />
               <Route path="/about" element={<AboutPage />} />

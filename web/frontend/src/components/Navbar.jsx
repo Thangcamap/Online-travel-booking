@@ -84,7 +84,7 @@ const Navbar = () => {
           <Menu.Item>
             {({ active }) => (
               <button
-                onClick={() => navigate("/profile?tab=payments")}
+                onClick={() => navigate("/payments")}
                 className={`${
                   active ? "bg-gray-100" : ""
                 } block w-full text-left px-4 py-2 text-sm text-gray-700`}

@@ -1,5 +1,4 @@
 const tourModel = require("../models/tourModel");
-const { pool } = require("../../config/mysql");
 const fs = require("fs");
 
 // ======================== UPLOAD IMAGE ==========================
@@ -38,7 +37,7 @@ exports.createTour = async (req, res) => {
     if (!name || !price || !start_date || !end_date || !available_slots) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu dữ liệu ."
+        message: "Thiếu dữ liệu quan trọng."
       });
     }
 
@@ -56,34 +55,11 @@ exports.createTour = async (req, res) => {
 };
 
 // ======================== GET TOURS OF PROVIDER ==========================
-// exports.getToursByProvider = async (req, res) => {
-//   try {
-//     const { provider_id } = req.params;
-
-//     const tours = await tourModel.getToursByProviderId(provider_id);
-
-//     res.json({ success: true, tours });
-
-//   } catch (err) {
-//     console.error("Get tours error:", err);
-//     res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
-
 exports.getToursByProvider = async (req, res) => {
   try {
     const { provider_id } = req.params;
 
     const tours = await tourModel.getToursByProviderId(provider_id);
-    
-    // Tính số vé đã bán cho mỗi tour
-    for (const tour of tours) {
-      const [booked] = await pool.query(
-        `SELECT COUNT(*) as count FROM bookings WHERE tour_id = ? AND status IN ('confirmed', 'completed')`,
-        [tour.tour_id]
-      );
-      tour.booked_count = booked[0]?.count || 0;
-    }
 
     res.json({ success: true, tours });
 
@@ -300,5 +276,58 @@ exports.getTourBookings = async (req, res) => {
   } catch (err) {
     console.error("Get tour bookings error:", err);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+// quang them 
+// ======================== CREATE BOOKING ==========================
+exports.createBooking = async (req, res) => {
+  try {
+    const {
+      user_id,
+      tour_id,
+      quantity,
+      total_price,
+      status
+    } = req.body;
+
+    if (!user_id || !tour_id || !quantity || !total_price) {
+      return res.status(400).json({
+        success: false,
+        error: "Thiếu dữ liệu booking"
+      });
+    }
+
+    // 🔒 LẤY DỮ LIỆU TỪ TOUR
+    const tour = await tourModel.getPublicTourDetailRecord(tour_id);
+
+    if (!tour) {
+      return res.status(404).json({
+        success: false,
+        error: "Tour không tồn tại"
+      });
+    }
+
+    const booking = await tourModel.createBookingRecord({
+      user_id,
+      tour_id,
+      tour_name: tour.name,
+      quantity,
+      total_price,
+      start_date: tour.start_date,
+      end_date: tour.end_date,
+      status: status || "pending"
+    });
+
+    res.json({
+      success: true,
+      booking
+    });
+
+  } catch (err) {
+    console.error("❌ Create booking error:", err);
+    res.status(500).json({
+      success: false,
+      error: "Lỗi khi đặt tour"
+    });
   }
 };

@@ -26,6 +26,8 @@ router.get("/tours", adminController.getAllTours);
 // ======================== PAYMENT MANAGEMENT ==========================
 // Get all payments
 router.get("/payments", adminController.getAllPayments);
+// Delete a payment
+router.delete("/payments/:id", adminController.deletePayment);
 
 // Update payment status
 router.put("/payments/:id/status", adminController.updatePaymentStatus);

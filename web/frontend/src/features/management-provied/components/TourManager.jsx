@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ImagePreview } from "@/components/ui/image-preview";
 import { useMutation } from "@tanstack/react-query";
-import { getTours, createTour, deleteTour, uploadTourImage } from "../api/tours-api";
+import { getTours, createTour, deleteTour, uploadTourImage } from "../../management-provied/api/tours-api";
 
 export default function TourManager({ providerId }) {
   const [form, setForm] = useState({

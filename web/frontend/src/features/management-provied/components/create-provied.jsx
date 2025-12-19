@@ -28,7 +28,7 @@ import { Mail, Phone, Building, Loader2 } from "lucide-react";
 import { ImagePreview } from "@/components/ui/image-preview";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { createProvider, uploadProviderImage, getProviderByUser } from "../api/create-provied";
+import { createProvider, uploadProviderImage, getProviderByUser } from "../../management-provied/api/create-provied";
 import SearchLocation from "../../Location/components/SearchLocation";
 import { createAddress } from "../../Location/api/address-api";
 import useAuthUserStore from "@/stores/useAuthUserStore";
