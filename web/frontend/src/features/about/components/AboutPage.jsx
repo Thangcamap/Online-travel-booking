@@ -85,7 +85,7 @@ export default function AboutPage() {
       <div className="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
 
       {/* Header */}
-      <header className="relative z-10 bg-white/90 backdrop-blur-md shadow-sm sticky top-0">
+      <header className="sticky top-0 z-10 bg-white/90 backdrop-blur-md shadow-sm">
         <div className="container mx-auto flex justify-between items-center px-6 py-4">
           <div
             className="flex items-center gap-2 text-orange-500 hover:text-orange-600 font-semibold cursor-pointer"
