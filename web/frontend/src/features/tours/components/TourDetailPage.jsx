@@ -30,7 +30,7 @@ const TourDetailPage = () => {
 
   const [guestCount, setGuestCount] = useState({ adults: 1, children: 0, infants: 0 });
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [selectedDate, setSelectedDate] = useState("");
+  // const [selectedDate, setSelectedDate] = useState("");
   const [activeTab, setActiveTab] = useState("include");
   const [openGallery, setOpenGallery] = useState(false);
   const [openChat, setOpenChat] = useState(false);
@@ -113,20 +113,20 @@ const TourDetailPage = () => {
   };
 
   //  useEffect: đồng bộ ngày chọn với tour hiển thị
-  React.useEffect(() => {
-    if (selectedDate && tour?.start_date && tour?.end_date) {
-      const start = new Date(tour.start_date);
-      const end = new Date(tour.end_date);
-      const duration = (end - start) / (1000 * 60 * 60 * 24);
+  // React.useEffect(() => {
+  //   if (selectedDate && tour?.start_date && tour?.end_date) {
+  //     const start = new Date(tour.start_date);
+  //     const end = new Date(tour.end_date);
+  //     const duration = (end - start) / (1000 * 60 * 60 * 24);
 
-      const newEnd = new Date(selectedDate);
-      newEnd.setDate(newEnd.getDate() + duration);
+  //     const newEnd = new Date(selectedDate);
+  //     newEnd.setDate(newEnd.getDate() + duration);
 
-      // Cập nhật tạm thời ngày trong tour (chỉ để hiển thị)
-      tour.start_date = selectedDate;
-      tour.end_date = newEnd.toISOString().split("T")[0];
-    }
-  }, [selectedDate]);
+  //     // Cập nhật tạm thời ngày trong tour (chỉ để hiển thị)
+  //     tour.start_date = selectedDate;
+  //     tour.end_date = newEnd.toISOString().split("T")[0];
+  //   }
+  // }, [selectedDate]);
 
   const { data: allTours = [] } = useQuery({
     queryKey: ["allTours"],
@@ -139,44 +139,44 @@ const TourDetailPage = () => {
   const totalPrice =
     basePrice * (guestCount.adults + guestCount.children * 0.7 + guestCount.infants * 0.3);
 
-  // Tính minDate (hôm nay + 2 ngày)
-  const getMinDate = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset về 00:00:00
-    const minDate = new Date(today);
-    minDate.setDate(today.getDate() + 2); // Thêm 2 ngày
-    return minDate.toISOString().split("T")[0];
-  };
+  // // Tính minDate (hôm nay + 2 ngày)
+  // const getMinDate = () => {
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0); // Reset về 00:00:00
+  //   const minDate = new Date(today);
+  //   minDate.setDate(today.getDate() + 2); // Thêm 2 ngày
+  //   return minDate.toISOString().split("T")[0];
+  // };
 
-  const minDate = getMinDate();
+  // const minDate = getMinDate();
 
-  const validateDate = () => {
-    if (!selectedDate) {
-      console.log("❌ No date selected");
-      return false;
-    }
+  // const validateDate = () => {
+  //   if (!selectedDate) {
+  //     console.log(" No date selected");
+  //     return false;
+  //   }
 
-    // Reset time về 00:00:00 cho cả hai ngày để so sánh chính xác
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  //   // Reset time về 00:00:00 cho cả hai ngày để so sánh chính xác
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0);
     
-    const chosen = new Date(selectedDate);
-    chosen.setHours(0, 0, 0, 0);
+  //   const chosen = new Date(selectedDate);
+  //   chosen.setHours(0, 0, 0, 0);
 
-    // Tính số ngày chênh lệch (số nguyên)
-    const diffTime = chosen.getTime() - today.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  //   // Tính số ngày chênh lệch (số nguyên)
+  //   const diffTime = chosen.getTime() - today.getTime();
+  //   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    console.log("📅 Date validation:", {
-      today: today.toISOString().split("T")[0],
-      chosen: selectedDate,
-      diffDays,
-      isValid: diffDays >= 2,
-    });
+  //   console.log(" Date validation:", {
+  //     today: today.toISOString().split("T")[0],
+  //     chosen: selectedDate,
+  //     diffDays,
+  //     isValid: diffDays >= 2,
+  //   });
 
-    // Phải chọn ngày >= hôm nay + 2 ngày
-    return diffDays >= 2;
-  };
+  //   // Phải chọn ngày >= hôm nay + 2 ngày
+  //   return diffDays >= 2;
+  // };
 
   const handleBookTour = async () => {
     if (!authUser || !authUser.user_id) {
@@ -185,31 +185,32 @@ const TourDetailPage = () => {
       return;
     }
 
-    if (!validateDate()) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const minAllowedDate = new Date(today);
-      minAllowedDate.setDate(today.getDate() + 2);
+    // if (!validateDate()) {
+    //   const today = new Date();
+    //   today.setHours(0, 0, 0, 0);
+    //   const minAllowedDate = new Date(today);
+    //   minAllowedDate.setDate(today.getDate() + 2);
       
-      alert(
-        `⚠️ Ngày khởi hành phải cách hôm nay ít nhất 2 ngày!\n\n` +
-        `Hôm nay: ${today.toLocaleDateString("vi-VN")}\n` +
-        `Ngày sớm nhất có thể đặt: ${minAllowedDate.toLocaleDateString("vi-VN")}\n` +
-        `Bạn đã chọn: ${selectedDate ? new Date(selectedDate).toLocaleDateString("vi-VN") : "Chưa chọn"}`
-      );
-      return;
-    }
+    //   alert(
+    //     ` Ngày khởi hành phải cách hôm nay ít nhất 2 ngày!\n\n` +
+    //     `Hôm nay: ${today.toLocaleDateString("vi-VN")}\n` +
+    //     `Ngày sớm nhất có thể đặt: ${minAllowedDate.toLocaleDateString("vi-VN")}\n` +
+    //     `Bạn đã chọn: ${selectedDate ? new Date(selectedDate).toLocaleDateString("vi-VN") : "Chưa chọn"}`
+    //   );
+    //   return;
+    // }
 
     try {
       const payload = {
         user_id: authUser.user_id,
         tour_id: tour.tour_id,
         total_price: totalPrice,
-        start_date: selectedDate,
+        // start_date: selectedDate,
+        start_date: tour.start_date,
         status: "pending",
       };
 
-      console.log("📝 Booking payload:", payload);
+      console.log(" Booking payload:", payload);
       
       const res = await fetch(`${API_BASE}/bookings`, {
         method: "POST",
@@ -218,7 +219,7 @@ const TourDetailPage = () => {
       });
 
       const data = await res.json();
-      console.log("📊 Booking response:", data);
+      console.log(" Booking response:", data);
       
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Lỗi khi đặt tour");
@@ -284,7 +285,7 @@ const TourDetailPage = () => {
           {index === 3 && tour.images.length > 5 && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center 
             text-white font-semibold text-lg rounded-xl">
-              📷 Xem tất cả hình ảnh
+               Xem tất cả hình ảnh
             </div>
           )}
         </div>
@@ -303,7 +304,9 @@ const TourDetailPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <div className="flex items-center gap-2 text-gray-700">
               <Calendar className="w-5 h-5 text-orange-500" />
-              <span><b>Khởi hành:</b> {formatDate(selectedDate || tour.start_date)}</span>
+              {/* <span><b>Khởi hành:</b> {formatDate(selectedDate || tour.start_date)}</span> */}
+              <span><b>Khởi hành:</b> {formatDate(tour.start_date)}</span>
+
             </div>
             <div className="flex items-center gap-2 text-gray-700">
               <Calendar className="w-5 h-5 text-orange-500" />
@@ -441,7 +444,7 @@ const TourDetailPage = () => {
                   ) : (
                     <button
                       onClick={() => {
-                        alert("⚠️ Bạn chỉ có thể đánh giá tour sau khi đã thanh toán!\n\nVui lòng thanh toán tour trước khi đánh giá.");
+                        alert(" Bạn chỉ có thể đánh giá tour sau khi đã thanh toán!\n\nVui lòng thanh toán tour trước khi đánh giá.");
                         navigate("/profile?tab=payments");
                       }}
                       className="px-5 py-2.5 bg-gray-300 text-gray-600 rounded-lg cursor-not-allowed transition font-semibold flex items-center gap-2"
@@ -569,10 +572,10 @@ const TourDetailPage = () => {
                       : "text-green-700"
                   }`}>
                     {tour.available_slots === 0 
-                      ? "⚠️ Hết chỗ" 
+                      ? " Hết chỗ" 
                       : tour.available_slots <= 5 
-                      ? `⚡ Còn ${tour.available_slots} vé (Sắp hết)` 
-                      : `✅ Còn ${tour.available_slots} vé`}
+                      ? ` Còn ${tour.available_slots} vé (Sắp hết)` 
+                      : ` Còn ${tour.available_slots} vé`}
                   </p>
                   {tour.available_slots > 0 && tour.available_slots <= 5 && (
                     <p className="text-xs text-orange-600 mt-1">
@@ -585,7 +588,7 @@ const TourDetailPage = () => {
           )}
 
           {/* Ngày đi */}
-          <label className="font-medium text-gray-700 block mb-1"> Chọn ngày khởi hành:</label>
+          {/* <label className="font-medium text-gray-700 block mb-1"> Chọn ngày khởi hành:</label>
           <input
             type="date"
             value={selectedDate}
@@ -593,7 +596,13 @@ const TourDetailPage = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="border rounded-lg px-3 py-2 w-full mb-4"
             disabled={tour.available_slots === 0}
-          />
+          /> */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-500">Ngày khởi hành</p>
+            <p className="text-lg font-semibold text-gray-800">
+              {formatDate(tour.start_date)}
+            </p>
+          </div>
 
           <p className="text-3xl font-bold text-orange-600 mb-2">
             {basePrice.toLocaleString("vi-VN")} {tour.currency || "VND"}
@@ -662,7 +671,7 @@ const TourDetailPage = () => {
     onClick={() => setOpenChat(true)}
     className="w-full bg-white border border-orange-500 text-orange-600 py-3 mt-3 rounded-lg font-semibold hover:bg-orange-50 transition"
   >
-    💬 Chat với nhà cung cấp tour
+     Chat với nhà cung cấp tour
   </button>
 )}
         </div>
@@ -701,7 +710,7 @@ const TourDetailPage = () => {
     
     {/* Header */}
     <div className="bg-orange-500 p-3 text-white flex justify-between items-center rounded-t-xl">
-      <span className="font-semibold">💬 Chat với nhà cung cấp tour</span>
+      <span className="font-semibold"> Chat với nhà cung cấp tour</span>
       <button onClick={() => setOpenChat(false)} className="font-bold text-lg">
         ✖
       </button>

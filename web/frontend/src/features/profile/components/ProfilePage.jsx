@@ -10,6 +10,7 @@ import ReviewModal from "@/features/reviews/components/ReviewModal";
 import StarRating from "@/components/StarRating";
 import { getUserPoints, getPointTransactions } from "@/features/points/api/points-api";
 import { getUserReviews, getUserReviewForTour } from "@/features/reviews/api/reviews-api";
+import bgProfile from "./HN1.png";
 import {
   fetchPayments,
   confirmPayment,
@@ -109,17 +110,17 @@ const ProfilePage = () => {
     queryKey: ["userBookings", authUser?.user_id],
     queryFn: async () => {
       if (!authUser?.user_id) {
-        console.log("⚠️ No user_id, returning empty bookings");
+        console.log(" No user_id, returning empty bookings");
         return { success: false, bookings: [] };
       }
-      console.log("📝 Fetching bookings for user:", authUser.user_id);
+      console.log(" Fetching bookings for user:", authUser.user_id);
       try {
         const res = await api.get(`/bookings/user/${authUser.user_id}`);
-        console.log("✅ Bookings response:", res.data);
+        console.log("Bookings response:", res.data);
         return res.data;
       } catch (err) {
-        console.error("❌ Error fetching bookings:", err);
-        console.error("❌ Error response:", err.response?.data);
+        console.error(" Error fetching bookings:", err);
+        console.error("Error response:", err.response?.data);
         throw err;
       }
     },
@@ -234,7 +235,7 @@ const ProfilePage = () => {
   // Payment handlers
   const openPaymentModal = (payment) => {
     setCurrentPayment(payment);
-    setPayStatus({ text: "⏳ Đang chờ thanh toán...", cls: "text-yellow-500" });
+    setPayStatus({ text: " Đang chờ thanh toán...", cls: "text-yellow-500" });
     setModalOpen(true);
   };
 
@@ -255,9 +256,9 @@ const ProfilePage = () => {
     try {
       // Nếu có file mới upload nhưng chưa gửi lên server, upload trước
       if (currentPayment.uploadFile) {
-        console.log("📤 Uploading payment image first...");
+        console.log(" Uploading payment image first...");
         await uploadPaymentImage(currentPayment.payment_id, currentPayment.uploadFile);
-        console.log("✅ Payment image uploaded");
+        console.log(" Payment image uploaded");
         // Refresh payment data để có payment_image mới nhất
         await qc.refetchQueries(["payments", authUser?.user_id, authUser?.email]);
       }
@@ -271,11 +272,11 @@ const ProfilePage = () => {
         return;
       }
 
-      console.log("📝 Confirming payment:", currentPayment.payment_id);
+      console.log(" Confirming payment:", currentPayment.payment_id);
       const result = await confirmPayment(currentPayment.payment_id);
-      console.log("✅ Payment confirmed:", result);
+      console.log(" Payment confirmed:", result);
       
-      setPayStatus({ text: "✅ Đã gửi xác nhận thanh toán! Đang chờ admin duyệt...", cls: "text-blue-600" });
+      setPayStatus({ text: " Đã gửi xác nhận thanh toán! Đang chờ admin duyệt...", cls: "text-blue-600" });
       qc.invalidateQueries(["payments", authUser?.user_id, authUser?.email]);
       qc.invalidateQueries(["userBookings", authUser?.user_id]);
       
@@ -284,8 +285,8 @@ const ProfilePage = () => {
         // Không tự động mở invoice vì chưa được admin duyệt
       }, 1500);
     } catch (error) {
-      console.error("❌ Error confirming payment:", error);
-      alert(`❌ Lỗi khi xác nhận thanh toán!\n\n${error.response?.data?.error || error.message || "Vui lòng thử lại."}`);
+      console.error(" Error confirming payment:", error);
+      alert(` Lỗi khi xác nhận thanh toán!\n\n${error.response?.data?.error || error.message || "Vui lòng thử lại."}`);
     }
   };
 
@@ -313,11 +314,11 @@ const ProfilePage = () => {
         method: editData.method,
         amount: Number(editData.amount),
       });
-      alert("✅ Cập nhật thành công");
+      alert("Cập nhật thành công");
       setEditOpen(false);
       qc.invalidateQueries(["payments", authUser?.user_id, authUser?.email]);
     } catch (e) {
-      alert("❌ Không thể sửa: " + (e.response?.data?.error || e.message));
+      alert(" Không thể sửa: " + (e.response?.data?.error || e.message));
     } finally {
       setSaving(false);
     }
@@ -330,7 +331,7 @@ const ProfilePage = () => {
       alert("✅ Xóa hóa đơn thành công");
       qc.invalidateQueries(["payments", authUser?.user_id, authUser?.email]);
     } catch (e) {
-      alert("❌ Không thể xóa: " + (e.response?.data?.error || e.message));
+      alert(" Không thể xóa: " + (e.response?.data?.error || e.message));
     }
   };
 
@@ -426,9 +427,18 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen overflow-hidden">
+      {/* ===== HÌNH NỀN LỚP SAU ===== */}
+      <div
+        className="absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url(${bgProfile})`,
+        }}
+      />
+      {/* ===== LỚP PHỦ LÀM MỜ ===== */}
+      <div className="absolute inset-0 -z-10 bg-white/70 backdrop-blur-sm" />
       <Navbar />
-
+      
       <div className="container mx-auto px-6 py-8">
         {/* Header - Refactored với Level Badge */}
         <div className={`bg-gradient-to-br ${userLevel.bgColor} rounded-2xl shadow-lg p-6 mb-6 border-2 ${userLevel.borderColor}`}>
@@ -597,7 +607,7 @@ const ProfilePage = () => {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-white rounded-2xl shadow-md p-6">
+        <div className="bg-transparent p-6">
           {/* Tab: Lịch sử đặt tour (đã thanh toán) */}
           {activeTab === "bookings" && (
             <>
@@ -635,7 +645,7 @@ const ProfilePage = () => {
                     return (
                       <div
                         key={booking.booking_id}
-                        className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition"
+                        className="bg-white/90 backdrop-blur-sm border border-white/60 rounded-xl p-6 shadow-md hover:shadow-lg transition"
                       >
                         <div className="flex flex-col md:flex-row md:items-start gap-4">
                           {/* Image */}
@@ -693,7 +703,7 @@ const ProfilePage = () => {
 
                             {/* Đánh giá hiện có (nếu có) */}
                             {bookingReviews[booking.booking_id] && (
-                              <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                               <div className="mt-5 p-5 bg-white rounded-xl shadow-md border-l-4 border-orange-500">
                                 <div className="flex items-start justify-between mb-2">
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-semibold text-gray-800">Đánh giá của bạn:</h4>
@@ -1055,7 +1065,7 @@ const ProfilePage = () => {
                 if (!currentPayment.uploadFile) return alert("Vui lòng chọn ảnh thanh toán!");
                 try {
                   const result = await uploadPaymentImage(currentPayment.payment_id, currentPayment.uploadFile);
-                  setPayStatus({ text: "✅ Ảnh đã gửi thành công! Bấm nút bên dưới để gửi xác nhận.", cls: "text-green-600" });
+                  setPayStatus({ text: "Ảnh đã gửi thành công! Bấm nút bên dưới để gửi xác nhận.", cls: "text-green-600" });
                   // Refresh payment data để cập nhật payment_image
                   await qc.refetchQueries(["payments", authUser?.user_id, authUser?.email]);
                   // Cập nhật currentPayment với payment_image từ server
@@ -1066,11 +1076,11 @@ const ProfilePage = () => {
                   }
                 } catch (error) {
                   console.error("Error uploading image:", error);
-                  alert("❌ Lỗi khi tải ảnh lên!");
+                  alert(" Lỗi khi tải ảnh lên!");
                 }
               }}
             >
-              📤 Gửi ảnh xác minh
+               Gửi ảnh xác minh
             </button>
             <button 
               className="w-full mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed" 
@@ -1135,7 +1145,7 @@ const ProfilePage = () => {
                 onClick={onEditPaymentSave}
                 disabled={saving}
               >
-                {saving ? "⏳ Đang lưu..." : "💾 Lưu thay đổi"}
+                {saving ? "Đang lưu..." : " Lưu thay đổi"}
               </button>
             </div>
           </div>
@@ -1189,7 +1199,7 @@ const ProfilePage = () => {
               </div>
               <div>
                 <h2 className="text-lg font-semibold mb-2 text-orange-600">
-                  🧭 Thông tin Tour
+                   Thông tin Tour
                 </h2>
                 <p><b>Tên tour:</b> {invoice.tour_name}</p>
                 <p><b>Thời gian:</b> {invoice.start_date} → {invoice.end_date}</p>
@@ -1209,8 +1219,8 @@ const ProfilePage = () => {
               <p className="text-sm text-gray-600">
                 Trạng thái:{" "}
                 {invoice.status === "paid"
-                  ? "✅ Đã thanh toán"
-                  : "💳 Chưa thanh toán"}
+                  ? " Đã thanh toán"
+                  : " Chưa thanh toán"}
               </p>
             </div>
 
@@ -1241,7 +1251,7 @@ const ProfilePage = () => {
                 className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
                 onClick={() => window.print()}
               >
-                🖨️ In hóa đơn (PDF)
+                 In hóa đơn (PDF)
               </button>
             </div>
           </div>

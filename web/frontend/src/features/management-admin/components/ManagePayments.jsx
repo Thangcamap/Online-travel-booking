@@ -22,29 +22,29 @@ export default function ManagePayments() {
   });
 
   // Debug: Log payments để kiểm tra
-  console.log("📊 Admin Payments:", payments);
-  console.log("📊 Payments with image:", payments.filter(p => p.payment_image));
-  console.log("📊 Unpaid payments with image:", payments.filter(p => p.status === "unpaid" && p.payment_image));
+  console.log(" Admin Payments:", payments);
+  console.log(" Payments with image:", payments.filter(p => p.payment_image));
+  console.log(" Unpaid payments with image:", payments.filter(p => p.status === "unpaid" && p.payment_image));
 
   const mutation = useMutation({
     mutationFn: ({ id, status }) => {
-      console.log("🔄 Mutation called:", { id, status });
+      console.log(" Mutation called:", { id, status });
       return updatePaymentStatus(id, status);
     },
     onSuccess: (data, variables) => {
-      console.log("✅ Mutation success:", data, variables);
+      console.log(" Mutation success:", data, variables);
       qc.invalidateQueries(["admin-payments"]);
       setSuccessMsg(
         variables.status === "paid" 
-          ? "✅ Đã duyệt thanh toán thành công!" 
-          : "✅ Đã từ chối thanh toán và hoàn trả số lượng tour!"
+          ? " Đã duyệt thanh toán thành công!" 
+          : " Đã từ chối thanh toán và hoàn trả số lượng tour!"
       );
       setTimeout(() => setSuccessMsg(""), 3000);
     },
     onError: (error) => {
-      console.error("❌ Mutation error:", error);
+      console.error(" Mutation error:", error);
       const errorMessage = error.response?.data?.error || error.message || "Lỗi không xác định";
-      setErrorMsg("❌ Lỗi khi cập nhật thanh toán: " + errorMessage);
+      setErrorMsg(" Lỗi khi cập nhật thanh toán: " + errorMessage);
       setTimeout(() => setErrorMsg(""), 5000);
     },
   });
@@ -55,7 +55,7 @@ export default function ManagePayments() {
     const correctPassword = "admin".toLowerCase();
     
     // Debug: Log để kiểm tra
-    console.log("🔐 Password check:", {
+    console.log(" Password check:", {
       input: `"${inputPassword}"`,
       inputLength: inputPassword.length,
       correct: `"${correctPassword}"`,
@@ -78,7 +78,7 @@ export default function ManagePayments() {
       setPasswordModal({ open: false, action: null, payment: null });
       setErrorMsg("");
     } else {
-      setErrorMsg(`❌ Mật khẩu không đúng! (Gợi ý: mật khẩu là "admin")`);
+      setErrorMsg(` Mật khẩu không đúng! (Gợi ý: mật khẩu là "admin")`);
       // Clear password input sau 3 giây để user có thể nhập lại
       setTimeout(() => {
         setPasswordInput("");
@@ -107,8 +107,8 @@ export default function ManagePayments() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">💳 Quản lý Thanh toán</h2>
+      {/* <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold"> Quản lý Thanh toán</h2>
         <div className="flex gap-4 text-sm">
           <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-semibold">
             Chờ duyệt: {unpaidPayments.length}
@@ -117,7 +117,24 @@ export default function ManagePayments() {
             Đã duyệt: {paidPayments.length}
           </div>
         </div>
+      </div> */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">
+          Quản lý Thanh toán
+          </h2>
+        </div>
+
+        <div className="flex gap-3">
+          <div className="bg-yellow-100 text-yellow-800 px-5 py-3 rounded-lg text-base font-semibold shadow-sm">
+             Chờ duyệt: {unpaidPayments.length}
+          </div>
+          <div className="bg-yellow-100 text-yellow-800 px-5 py-3 rounded-lg text-base font-semibold shadow-sm">
+             Đã duyệt: {paidPayments.length}
+          </div>
+        </div>
       </div>
+
 
       {successMsg && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
@@ -131,11 +148,11 @@ export default function ManagePayments() {
         </div>
       ) : (
         <div className="w-full">
-          <table className="w-full text-xs border rounded-lg bg-white table-auto">
+          <table className="w-full text-base border rounded-xl bg-white table-auto shadow-sm">
             <thead className="bg-orange-500 text-white">
               <tr>
-                <th className="px-2 py-2 text-left w-[8%]">Mã</th>
-                <th className="px-2 py-2 text-left w-[12%]">Khách hàng</th>
+                <th className="px-4 py-3 text-left text-base font-semibold w-[8%]">Mã</th>
+                <th className="px-4 py-3 font-mono text-sm">Khách hàng</th>
                 <th className="px-2 py-2 text-left w-[18%]">Tour</th>
                 <th className="px-2 py-2 text-right w-[10%]">Số tiền</th>
                 <th className="px-2 py-2 text-left w-[10%]">Phương thức</th>
@@ -148,11 +165,11 @@ export default function ManagePayments() {
             <tbody>
               {payments.map((p) => (
                 <tr key={p.payment_id} className="border-b hover:bg-gray-50 transition">
-                  <td className="px-2 py-2 font-mono text-xs">{p.payment_id}</td>
+                  <td className="px-4 py-3 font-mono text-base font-semibold text-gray-800">{p.payment_id}</td>
                   <td className="px-2 py-2">
                     <div>
-                      <div className="font-medium truncate" title={p.user_name}>{p.user_name}</div>
-                      <div className="text-xs text-gray-500 truncate" title={p.user_email}>{p.user_email}</div>
+                      <div className="font-semibold text-base truncate" title={p.user_name}>{p.user_name}</div>
+                      <div className="text-sm text-gray-500 truncate" title={p.user_email}>{p.user_email}</div>
                     </div>
                   </td>
                   <td className="px-2 py-2">
@@ -176,7 +193,7 @@ export default function ManagePayments() {
                   </td>
                   <td className="px-2 py-2 text-center">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                      className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap ${
                         p.status === "paid"
                           ? "bg-green-100 text-green-800"
                           : p.payment_image
@@ -184,16 +201,16 @@ export default function ManagePayments() {
                           : "bg-yellow-100 text-yellow-800"
                       }`}
                       title={p.status === "paid" 
-                        ? "✅ Đã duyệt" 
+                        ? " Đã duyệt" 
                         : p.payment_image 
-                        ? "💳 Đã chuyển khoản (Chờ admin duyệt)" 
-                        : "⏳ Chưa thanh toán"}
+                        ? " Đã chuyển khoản (Chờ admin duyệt)" 
+                        : " Chưa thanh toán"}
                     >
                       {p.status === "paid" 
-                        ? "✅ Đã duyệt" 
+                        ? " Đã duyệt" 
                         : p.payment_image 
-                        ? "💳 Chờ duyệt" 
-                        : "⏳ Chưa thanh toán"}
+                        ? " Chờ duyệt" 
+                        : " Chưa thanh toán"}
                     </span>
                   </td>
                   <td className="px-2 py-2 text-center">
@@ -210,11 +227,11 @@ export default function ManagePayments() {
                     )}
                   </td>
                   <td className="px-2 py-2">
-                    <div className="flex gap-1 justify-center flex-wrap">
+                    <div className="flex items-center justify-center gap-2 whitespace-nowrap">
                       {p.status === "unpaid" && p.payment_image && (
                         <Button
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1"
+                          className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg"
                           onClick={() =>
                             setPasswordModal({ open: true, action: "paid", payment: p })
                           }
@@ -272,7 +289,7 @@ export default function ManagePayments() {
         </div>
       )}
 
-      {/* 🔒 Modal xác minh mật khẩu admin */}
+      {/*  Modal xác minh mật khẩu admin */}
       {passwordModal.open && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div
@@ -288,7 +305,7 @@ export default function ManagePayments() {
               Vui lòng nhập mật khẩu admin để xác nhận hành động này.
             </p>
             <p className="text-xs text-orange-600 mb-3 bg-orange-50 p-2 rounded">
-              💡 Gợi ý: Mật khẩu là <strong>"admin"</strong> (không phải mật khẩu đăng nhập)
+               Gợi ý: Mật khẩu là <strong>"admin"</strong> (không phải mật khẩu đăng nhập)
             </p>
             {passwordModal.payment && (
               <div className="bg-gray-50 p-3 rounded mb-3 text-sm">
@@ -297,7 +314,7 @@ export default function ManagePayments() {
                 <p><strong>Tour:</strong> {passwordModal.payment.tour_name}</p>
                 <p><strong>Hành động:</strong> 
                   <span className={passwordModal.action === "paid" ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
-                    {passwordModal.action === "paid" ? " ✅ Duyệt thanh toán" : " ❌ Từ chối thanh toán (sẽ hoàn trả số lượng tour)"}
+                    {passwordModal.action === "paid" ? "  Duyệt thanh toán" : " ❌ Từ chối thanh toán (sẽ hoàn trả số lượng tour)"}
                   </span>
                 </p>
               </div>
