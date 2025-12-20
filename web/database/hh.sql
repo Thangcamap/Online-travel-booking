@@ -196,7 +196,7 @@ CREATE TABLE `payments` (
   `booking_id` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
   `amount` decimal(10,2) NOT NULL,
   `method` enum('cash','card','online') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` enum('unpaid','paid') COLLATE utf8mb4_unicode_ci DEFAULT 'unpaid',
+  `status` enum('unpaid','pending','paid','failed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'unpaid',
   `payment_image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -247,7 +247,7 @@ CREATE TABLE `tour_itineraries` (
   PRIMARY KEY (`itinerary_id`),
   KEY `tour_id` (`tour_id`),
   CONSTRAINT `tour_itineraries_ibfk_1` FOREIGN KEY (`tour_id`) REFERENCES `tours` (`tour_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=316 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -322,13 +322,17 @@ CREATE TABLE `users` (
   `user_id` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `phone_number` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `phone_number` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `avatar_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `role` enum('user','provider','admin') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'user',
   `status` enum('active','inactive','suspended') COLLATE utf8mb4_unicode_ci DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `is_2fa_enabled` tinyint(1) DEFAULT '1',
+  `otp_code` varchar(6) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `otp_expires_at` datetime DEFAULT NULL,
+  `is_2fa_verified` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `phone_number` (`phone_number`)
@@ -344,4 +348,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-11-20  2:05:03
+-- Dump completed on 2025-12-20 19:00:39

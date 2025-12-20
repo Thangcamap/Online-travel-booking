@@ -62,6 +62,7 @@ useEffect(() => {
               {/* Các trang khác */}
               <Route path="/ai" element={<AI />} />
               <Route path="/home" element={<Home />} />
+              <Route path="/" element={<CreateProvided />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/tours" element={<ToursPage />} />
               <Route path="/tours/:tourId" element={<TourDetailPage />} />
