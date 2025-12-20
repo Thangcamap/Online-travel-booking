@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Mail, Phone, MapPin } from "lucide-react";
-import { getProviderById } from "../../management-provied/api/tours-api";
+import { getProviderById } from "../api/tours-api";
 
 export default function ProviderInfo({ providerId }) {
   const [provider, setProvider] = useState(null);

@@ -25,7 +25,18 @@ export default function ToursPage() {
 
   const { data: tours = [], isLoading, error } = useQuery({
     queryKey: ["tours"],
-    queryFn: fetchTours,
+    queryFn: async () => {
+      try {
+        const data = await fetchTours();
+        // Đảm bảo trả về mảng
+        return Array.isArray(data) ? data : [];
+      } catch (err) {
+        console.error("Error fetching tours:", err);
+        return [];
+      }
+    },
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 
   // Hàm lọc tour
@@ -83,7 +94,7 @@ export default function ToursPage() {
             <Link to="/about" className="hover:text-orange-500">
               About
             </Link>
-            <Link to="/payments" className="hover:text-orange-500">
+            <Link to="/profile?tab=payments" className="hover:text-orange-500">
               Payments
             </Link>
           </nav>
@@ -132,7 +143,7 @@ export default function ToursPage() {
                     </Menu.Item>
                     <Menu.Item>
                       <button
-                        onClick={() => navigate("/payments")}
+                        onClick={() => navigate("/profile?tab=payments")}
                         className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                       >
                         💳 Thanh toán của tôi
@@ -222,57 +233,75 @@ export default function ToursPage() {
         </div>
       </section>
 
-      {/* 📋 KẾT QUẢ CHỈ HIỆN KHI CÓ TÌM KIẾM */}
-      {(search || priceFilter || dateFilter || departure) && (
-        <motion.main
-          className="flex-1 container mx-auto px-6 py-16"
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+      {/* 📋 HIỂN THỊ DANH SÁCH TOURS */}
+      <motion.main
+        className="flex-1 container mx-auto px-6 py-16"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        {(search || priceFilter || dateFilter || departure) ? (
           <h2 className="text-3xl font-bold text-orange-700 mb-10 text-center">
             Kết quả tìm kiếm ({filteredTours.length})
           </h2>
+        ) : (
+          <h2 className="text-3xl font-bold text-orange-700 mb-10 text-center">
+            Tất cả tour ({tours.length})
+          </h2>
+        )}
 
-          {isLoading ? (
-            <p className="text-center text-gray-500 italic">Đang tải tour...</p>
-          ) : error ? (
-            <p className="text-center text-red-500">Lỗi tải dữ liệu tour.</p>
-          ) : filteredTours.length > 0 ? (
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {filteredTours.map((tour) => (
-                <motion.div
-                  key={tour.tour_id}
-                  whileHover={{ scale: 1.03 }}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition cursor-pointer"
-                  onClick={() => navigate(`/tours/${tour.tour_id}`)}
-                >
-                  <img
-                    src={tour.image_url || HN1}
-                    alt={tour.name}
-                    className="w-full h-56 object-cover"
-                  />
-                  <div className="p-5 text-center">
-                    <h3 className="text-lg font-semibold text-orange-600">
-                      {tour.name}
-                    </h3>
-                    <p className="text-gray-600 text-sm mt-1 line-clamp-2">
-                      {tour.description}
+        {isLoading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 italic text-lg">Đang tải tour...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-500 text-lg">Lỗi tải dữ liệu tour.</p>
+            <p className="text-gray-400 text-sm mt-2">{error.message || "Vui lòng thử lại sau."}</p>
+          </div>
+        ) : filteredTours.length > 0 ? (
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {filteredTours.map((tour) => (
+              <motion.div
+                key={tour.tour_id}
+                whileHover={{ scale: 1.03 }}
+                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition cursor-pointer"
+                onClick={() => navigate(`/tours/${tour.tour_id}`)}
+              >
+                <img
+                  src={tour.image_url || HN1}
+                  alt={tour.name}
+                  className="w-full h-56 object-cover"
+                />
+                <div className="p-5 text-center">
+                  <h3 className="text-lg font-semibold text-orange-600">
+                    {tour.name}
+                  </h3>
+                  <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                    {tour.description}
+                  </p>
+                  <p className="mt-3 font-bold text-blue-700">
+                    {Number(tour.price).toLocaleString()}₫
+                  </p>
+                  {tour.available_slots !== undefined && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Còn {tour.available_slots} chỗ
                     </p>
-                    <p className="mt-3 font-bold text-blue-700">
-                      {Number(tour.price).toLocaleString()}₫
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-gray-500 italic">
-              Không tìm thấy tour nào phù hợp.
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500 italic text-lg">
+              {search || priceFilter || dateFilter || departure
+                ? "Không tìm thấy tour nào phù hợp."
+                : "No tours available yet."}
             </p>
-          )}
-        </motion.main>
-      )}
+          </div>
+        )}
+      </motion.main>
 
       {/* FOOTER */}
       <footer className="bg-gray-900 text-white text-center py-6 mt-10">

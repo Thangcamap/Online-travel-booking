@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import axios from "axios";
-import { deleteTour, updateTour, updateTourItinerary ,deleteTourImage } from "../../management-provied/api/tours-api";
+import { deleteTour, updateTour, updateTourItinerary ,deleteTourImage } from "../api/tours-api";
 
 
 export default function TourManagement({ providerId, tours = [], refresh }) {

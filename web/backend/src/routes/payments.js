@@ -165,75 +165,125 @@ router.get("/", async (req, res) => {
 // ✅ XÁC NHẬN THANH TOÁN
 // ===========================================
 router.patch("/:id/confirm", async (req, res) => {
-  const conn = await pool.getConnection();
   try {
     const { id } = req.params;
-    console.log("📝 ADMIN CONFIRM PAYMENT:", id);
-
-    await conn.beginTransaction();
-
-    // 1️⃣ Lấy payment + booking
-    const [payments] = await conn.query(
-      `SELECT payment_id, booking_id, status 
-       FROM payments 
-       WHERE payment_id = ? FOR UPDATE`,
+    console.log("📝 PATCH /payments/:id/confirm - Payment ID:", id);
+    
+    // Kiểm tra xem payment có tồn tại không
+    const [checkPayment] = await pool.query(
+      "SELECT payment_id, status FROM payments WHERE payment_id = ?",
       [id]
     );
-
-    if (payments.length === 0) {
-      await conn.rollback();
-      return res.status(404).json({ error: "Không tìm thấy thanh toán" });
+    
+    if (checkPayment.length === 0) {
+      console.error("❌ Payment not found:", id);
+      return res.status(404).json({ error: "Không tìm thấy thanh toán cần xác nhận" });
     }
-
-    if (payments[0].status === "paid") {
-      await conn.rollback();
-      return res.status(400).json({ error: "Thanh toán đã được duyệt trước đó" });
-    }
-
-    const bookingId = payments[0].booking_id;
-
-    // 2️⃣ Update payment
-    await conn.query(
-      `UPDATE payments 
-       SET status='paid', updated_at=NOW() 
-       WHERE payment_id=?`,
-      [id]
+    
+    console.log("📊 Payment found:", checkPayment[0]);
+    
+    // Kiểm tra xem bảng payments có cột status không
+    const [statusColumns] = await pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() 
+       AND TABLE_NAME = 'payments' 
+       AND COLUMN_NAME = 'status'`
     );
-
-    // 3️⃣ Update booking → TRIGGER SẼ CHẠY
-    const [bookingUpdate] = await conn.query(
-      `UPDATE bookings 
-       SET status='confirmed' 
-       WHERE booking_id=? AND status <> 'confirmed'`,
-      [bookingId]
-    );
-
-    if (bookingUpdate.affectedRows === 0) {
-      await conn.rollback();
-      return res.status(400).json({
-        error: "Booking không hợp lệ hoặc đã được duyệt",
+    
+    if (statusColumns.length === 0) {
+      console.error("❌ Column 'status' does not exist in payments table");
+      return res.status(500).json({ 
+        error: "Cột 'status' không tồn tại trong bảng payments. Vui lòng kiểm tra database schema." 
       });
     }
+    
+    // Kiểm tra payment status hiện tại
+    if (checkPayment[0].status === 'paid') {
+      return res.status(400).json({ error: "Thanh toán này đã được xác nhận trước đó." });
+    }
 
-    await conn.commit();
+    // 🔹 Kiểm tra xem payment đã có payment_image chưa
+    const [paymentColumns] = await pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() 
+       AND TABLE_NAME = 'payments' 
+       AND COLUMN_NAME = 'payment_image'`
+    );
+    
+    if (paymentColumns.length > 0) {
+      const [paymentData] = await pool.query(
+        "SELECT payment_image FROM payments WHERE payment_id = ?",
+        [id]
+      );
+      
+      if (paymentData.length > 0 && (!paymentData[0].payment_image || paymentData[0].payment_image === null || paymentData[0].payment_image === 'NULL')) {
+        return res.status(400).json({ 
+          error: "Vui lòng upload ảnh xác minh thanh toán trước khi gửi xác nhận!" 
+        });
+      }
+    }
 
-    console.log("✅ Payment & booking confirmed:", id, bookingId);
-    res.json({
-      success: true,
-      message: "✅ Duyệt thanh toán thành công, vé đã được cập nhật",
-    });
+    // 🔹 User confirm payment → giảm slot ngay lập tức (tạm thời)
+    // Nếu admin từ chối thì slot sẽ được cộng lại
+    // Status vẫn giữ "unpaid" để admin biết đây là payment đã được user confirm và đang chờ duyệt
+    
+    // Lấy booking_id và tour_id để giảm slot
+    const [bookingInfo] = await pool.query(
+      `SELECT b.booking_id, b.tour_id 
+       FROM payments p
+       JOIN bookings b ON p.booking_id = b.booking_id
+       WHERE p.payment_id = ?`,
+      [id]
+    );
+    
+    if (bookingInfo.length > 0) {
+      const tour_id = bookingInfo[0].tour_id;
+      
+      // Kiểm tra và giảm slot
+      const [tourSlots] = await pool.query(
+        `SELECT available_slots FROM tours WHERE tour_id = ?`,
+        [tour_id]
+      );
+      
+      if (tourSlots.length > 0 && tourSlots[0].available_slots > 0) {
+        // Import adminModel để dùng updateTourSlots
+        const adminModel = require("../models/adminModel");
+        await adminModel.updateTourSlots(tour_id, -1);
+        console.log(`✅ User confirmed payment ${id}: Reduced 1 slot from tour ${tour_id} (temporary, pending admin approval)`);
+      } else {
+        console.log("⚠️ Warning: Tour has no available slots:", tour_id);
+      }
+    }
+    
+    const [result] = await pool.query(
+      "UPDATE payments SET updated_at=NOW() WHERE payment_id=?",
+      [id]
+    );
+
+    console.log("📊 Update result:", result);
+
+    if (result.affectedRows === 0) {
+      console.error("❌ No rows affected. Payment ID:", id);
+      return res.status(404).json({ error: "Không thể cập nhật thanh toán. Vui lòng kiểm tra lại." });
+    }
+
+    console.log("✅ Payment confirmed successfully:", id);
+    res.json({ success: true, message: "✅ Thanh toán đã được xác nhận! Đang chờ admin duyệt." });
   } catch (err) {
-    await conn.rollback();
-    console.error("❌ CONFIRM PAYMENT ERROR:", err);
-    res.status(500).json({
-      error: "Lỗi duyệt thanh toán",
-      details: err.sqlMessage || err.message,
+    console.error("❌ [PATCH /confirm] Lỗi:", err);
+    console.error("❌ Error details:", {
+      message: err.message,
+      sqlMessage: err.sqlMessage,
+      code: err.code,
+      errno: err.errno,
+      sqlState: err.sqlState
     });
-  } finally {
-    conn.release();
+    res.status(500).json({ 
+      error: "Lỗi xác nhận thanh toán", 
+      details: err.sqlMessage || err.message 
+    });
   }
 });
-
 
 // ===========================================
 // ✏️ CẬP NHẬT THÔNG TIN THANH TOÁN
@@ -325,35 +375,39 @@ router.get("/:id/invoice", async (req, res) => {
 // ===========================================
 router.post("/upload/:id", upload.single("image"), async (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.file)
       return res.status(400).json({ error: "Thiếu file upload" });
+
+    // Kiểm tra xem bảng payments có cột payment_image không
+    const [columns] = await pool.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() 
+       AND TABLE_NAME = 'payments' 
+       AND COLUMN_NAME = 'payment_image'`
+    );
+    
+    if (columns.length === 0) {
+      return res.status(400).json({ 
+        error: "Tính năng upload ảnh thanh toán chưa được hỗ trợ. Cột payment_image không tồn tại trong database." 
+      });
     }
 
     const filePath = `/uploads/payments/${req.file.filename}`;
-
     const [result] = await pool.query(
-      `
-      UPDATE payments 
-      SET payment_image = ?, 
-          status = 'pending',
-          updated_at = NOW()
-      WHERE payment_id = ?
-      `,
+      "UPDATE payments SET payment_image=?, updated_at=NOW() WHERE payment_id=?",
       [filePath, req.params.id]
     );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Không tìm thấy thanh toán" });
-    }
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: "Không tìm thấy thanh toán để cập nhật ảnh" });
 
     res.json({
-      success: true,
-      message: "📸 Upload ảnh thành công, chờ admin duyệt",
+      message: "📸 Upload ảnh thanh toán thành công!",
       imageUrl: filePath,
     });
   } catch (err) {
-    console.error("❌ [UPLOAD PAYMENT IMAGE] Error:", err);
-    res.status(500).json({ error: "Lỗi upload ảnh thanh toán" });
+    console.error("❌ [POST /upload] Lỗi upload:", err);
+    res.status(500).json({ error: "Lỗi khi upload ảnh thanh toán", details: err.sqlMessage || err.message });
   }
 });
 

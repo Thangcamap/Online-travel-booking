@@ -36,30 +36,16 @@ export const getAllTours = async () => {
 };
 
 
-// //Quang thêm chức nanng liên quan đến payment
-// // ✅ Lấy danh sách tất cả thanh toán (kèm user + booking + tour)
-// export const getAllPayments = async () => {
-//   const res = await axios.get(`${API_URL}/payments`);
-//   return res.data.payments;
-// };
-
-// // ✅ Cập nhật trạng thái thanh toán
-// export const updatePaymentStatus = async (id, status) => {
-//   const res = await axios.put(`${API_URL}/payments/${id}/status`, { status });
-//   return res.data;
-// };
-// ================= PAYMENT =================
-
-// ✅ Lấy danh sách tất cả thanh toán
+//Quang thêm chức nanng liên quan đến payment
+// ✅ Lấy danh sách tất cả thanh toán (kèm user + booking + tour)
 export const getAllPayments = async () => {
   const res = await axios.get(`${API_URL}/payments`);
   return res.data.payments;
 };
 
-// ✅ Admin duyệt thanh toán (CHUẨN)
-export const confirmPayment = async (id) => {
-  const res = await axios.patch(
-    `http://localhost:5000/api/payments/${id}/confirm`
-  );
+// ✅ Cập nhật trạng thái thanh toán
+export const updatePaymentStatus = async (id, status) => {
+  const res = await axios.put(`${API_URL}/payments/${id}/status`, { status });
   return res.data;
 };
+
