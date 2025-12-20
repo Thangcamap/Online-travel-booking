@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 // import CreateProvided from "./features/payments/components/create-provied.jsx";
+import CreateProvided from "./features/management-provied/components/create-provied.jsx";
 import AdminDashboard from "./features/management-admin/components/AdminDashboard.jsx";
 // import ProviderDashboard from "@/features/payments/components/ProviderDashboard";
 import PaymentPage from "@/features/payments/components/PaymentPage.jsx";
@@ -63,7 +64,7 @@ useEffect(() => {
 
               {/* Các trang khác */}
               {/* <Route path="/" element={<CreateProvided />} /> */}
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<CreateProvided />} />
               <Route path="/payments" element={<PaymentPage />} />
               <Route path="/ai" element={<AI />} />
               <Route path="/home" element={<Home />} />

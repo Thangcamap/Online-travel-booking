@@ -238,10 +238,15 @@ const filteredTours = tours.filter((t) => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredTours.slice(0, 100).map((tour) => (
+                // <div
+                //   key={tour.tour_id}
+                //   className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-transform hover:-translate-y-2"
+                // >
                 <div
-                  key={tour.tour_id}
-                  className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-transform hover:-translate-y-2"
-                >
+                    key={tour.tour_id}
+                    onClick={() => navigate(`/tours/${tour.tour_id}`)}
+                    className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition-transform hover:-translate-y-2 cursor-pointer flex flex-col h-full"
+                  >
                   <img
                     src={
                       tour.image_url ||
@@ -250,11 +255,13 @@ const filteredTours = tours.filter((t) => {
                     alt={tour.name}
                     className="h-52 w-full object-cover"
                   />
-                  <div className="p-5 text-left">
+                  {/* <div className="p-5 text-left"> */}
+                  <div className="p-5 text-left flex flex-col flex-grow">
                     <h3 className="text-lg font-semibold mb-2">
                       {tour.name}
                     </h3>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+                    {/* <p className="text-gray-600 text-sm mb-3 line-clamp-3"> */}
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-3 flex-grow">
                       {tour.description || "No description available."}
                     </p>
 
@@ -273,7 +280,7 @@ const filteredTours = tours.filter((t) => {
                         </p>
                       )}
 
-                    <div className="flex justify-between items-center">
+                    {/* <div className="flex justify-between items-center">
                       <span className="text-orange-500 font-semibold">
                         {Number(tour.price).toLocaleString()}{" "}
                         {tour.currency || "VND"}
@@ -284,7 +291,22 @@ const filteredTours = tours.filter((t) => {
                       >
                         View
                       </Link>
-                    </div>
+                    </div> */}
+                    <div className="flex justify-between items-center pt-3 border-t border-gray-200 mt-auto">
+  <span className="text-orange-500 font-semibold text-sm">
+    {Number(tour.price).toLocaleString()}{" "}
+    {tour.currency || "VND"}
+  </span>
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      navigate(`/tours/${tour.tour_id}`);
+    }}
+    className="bg-orange-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-orange-600 transition"
+  >
+    View
+  </button>
+</div>
                   </div>
                 </div>
               ))}

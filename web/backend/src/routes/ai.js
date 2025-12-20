@@ -102,6 +102,7 @@ function withTimeout(promise, timeoutMs) {
 }
 
 // ============ OPENAI API ============
+// Dòng ~115-120
 async function callOpenAI(prompt, model = "gpt-4o-mini", temperature = 0.7) {
   try {
     const response = await withTimeout(
@@ -110,7 +111,7 @@ async function callOpenAI(prompt, model = "gpt-4o-mini", temperature = 0.7) {
         messages: [{ role: "user", content: prompt }],
         temperature,
       }),
-      CONFIG.AI_TIMEOUT
+      CONFIG.AI_TIMEOUT * 2 // ✅ Tăng timeout lên 20s cho tour analysis
     );
     return response.choices[0].message.content;
   } catch (err) {
@@ -450,6 +451,7 @@ Trả về JSON (KHÔNG có markdown, KHÔNG có comment):
 }
 
 // ============ AI TOUR CHARACTERISTICS ANALYSIS ============
+// Dòng ~468-545 (thay thế hàm analyzeTourCharacteristics)
 async function analyzeTourCharacteristics(tours, itineraryMap) {
   try {
     const cacheKey = `tour_analysis:all`;
@@ -486,7 +488,15 @@ Trả về JSON:
   ]
 }`;
 
-    const text = await callOpenAI(prompt, "gpt-4o");
+    let text;
+    try {
+      text = await callOpenAI(prompt, "gpt-4o-mini", 0.5); // ✅ Dùng mini model nhanh hơn
+    } catch (err) {
+      logger.warn('tour_analysis_ai_failed_fallback', {});
+      // ✅ FALLBACK: Phân tích bằng keyword
+      return buildTourCharFromKeywords(tours, itineraryMap);
+    }
+
     const jsonText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').match(/\{[\s\S]*\}/)?.[0];
 
     if (jsonText) {
@@ -504,7 +514,61 @@ Trả về JSON:
     logger.error('analyze_tour_characteristics', err);
   }
 
-  return {};
+  // ✅ FALLBACK cuối cùng
+  return buildTourCharFromKeywords(tours, itineraryMap);
+}
+
+// ✅ HÀM MỚI: Phân tích tour bằng keyword khi AI thất bại
+function buildTourCharFromKeywords(tours, itineraryMap) {
+  const tourCharMap = {};
+
+  tours.forEach(tour => {
+    const name = tour.name.toLowerCase();
+    const desc = (tour.description || '').toLowerCase();
+    const itTexts = (itineraryMap[tour.tour_id] || [])
+      .map(it => `${it.title} ${it.description || ''}`)
+      .join(' ')
+      .toLowerCase();
+    const fullText = `${name} ${desc} ${itTexts}`;
+
+    const chars = {
+      name: tour.name,
+      actual_weather: [],
+      actual_environment: [],
+      actual_vibe: [],
+      actual_energy: 'medium',
+      actual_motivations: []
+    };
+
+    // Weather
+    if (/\b(biển|nước|tắm biển)\b/.test(fullText)) chars.actual_weather.push('water_environment');
+    if (/\b(mát|lạnh|se lạnh)\b/.test(fullText)) chars.actual_weather.push('cool_climate');
+    if (/\b(trong lành|không khí tốt)\b/.test(fullText)) chars.actual_weather.push('clean_air');
+    if (/\b(yên tĩnh|vắng)\b/.test(fullText)) chars.actual_weather.push('quiet_environment');
+
+    // Environment
+    if (/\b(núi|rừng|thác|thiên nhiên)\b/.test(fullText)) chars.actual_environment.push('nature');
+    if (/\b(phố|thành phố|city)\b/.test(fullText)) chars.actual_environment.push('urban');
+    if (/\b(biển|nước)\b/.test(fullText)) chars.actual_environment.push('water');
+    if (/\b(văn hóa|di tích|bảo tàng|chùa)\b/.test(fullText)) chars.actual_environment.push('cultural');
+
+    // Motivations
+    if (/\b(ăn|ẩm thực|hải sản|đặc sản)\b/.test(fullText)) chars.actual_motivations.push('cuisine');
+    if (/\b(chụp ảnh|cảnh đẹp|check.?in)\b/.test(fullText)) chars.actual_motivations.push('photography');
+    if (/\b(khám phá|trải nghiệm)\b/.test(fullText)) chars.actual_motivations.push('discovery');
+    if (/\b(nghỉ|thư giãn|spa)\b/.test(fullText)) chars.actual_motivations.push('wellness');
+    if (/\b(leo|trekking|mạo hiểm)\b/.test(fullText)) chars.actual_motivations.push('adventure');
+
+    // Vibe
+    if (/\b(yên|nghỉ)\b/.test(fullText)) chars.actual_vibe.push('peaceful');
+    if (/\b(náo nhiệt|sôi động)\b/.test(fullText)) chars.actual_vibe.push('lively');
+    if (/\b(lãng mạn|hoàng hôn)\b/.test(fullText)) chars.actual_vibe.push('romantic');
+
+    tourCharMap[name] = chars;
+  });
+
+  logger.info('tour_analysis_fallback_keyword', { count: Object.keys(tourCharMap).length });
+  return tourCharMap;
 }
 
 // ============ SMART MATCHING VỚI TRỌNG SỐ ƯU TIÊN ============
@@ -785,6 +849,10 @@ function parsePrice(input) {
 
 function extractPriceRange(message) {
   const lowerMsg = message.toLowerCase();
+    // ✅ THÊM: Xử lý "không quá sang", "bình dân", "vừa túi tiền"
+  if (/\b(không quá sang|bình dân|vừa túi tiền|giá phải chăng|tầm trung|dưới 10 triệu)\b/.test(lowerMsg)) {
+    return { type: 'budget', max: 7_000_000 };
+  }
 
   if (/\b(rẻ nhất|giá rẻ|giá thấp|rẻ)\b/.test(lowerMsg)) {
     return { type: 'cheap' };
@@ -970,6 +1038,7 @@ if (searchDate) {
       query += ` GROUP BY t.tour_id;`;
       const [tours] = await pool.query(query, params);
 
+      // Dòng ~995-1010 (CODE MỚI)
       const [itineraries] = await pool.query(`
         SELECT tour_id, day_number, title, description
         FROM tour_itineraries
@@ -982,21 +1051,35 @@ if (searchDate) {
         itineraryMap[it.tour_id].push(it);
       });
 
-      // Filter by price
+      // ✅ Filter giá TRƯỚC smart matching
       let candidateTours = tours;
-// if (priceRange?.type === 'range') {
-//   candidateTours = candidateTours.filter(t => {
-//     const basePrice = Number(t.price || 0);
-//     // Giá CƠ BẢN phải <= max (vì có thể có gói cao hơn)
-//     return basePrice <= priceRange.max && basePrice >= priceRange.min;
-//   });
-//     logger.info('price_filtered', { 
-//     before: tours.length, 
-//     after: candidateTours.length,
-//     range: `${priceRange.min}-${priceRange.max}` 
-//   });
-// }
       
+      if (priceRange) {
+        const before = candidateTours.length;
+
+        if (priceRange.type === 'budget') {
+          candidateTours = candidateTours.filter(t => {
+            const price = normalizePrice(t.price);
+            return price && price <= priceRange.max;
+          });
+        } else if (priceRange.type === 'range') {
+          candidateTours = candidateTours.filter(t => {
+            const price = normalizePrice(t.price);
+            return price && price >= priceRange.min && price <= priceRange.max;
+          });
+        } else if (priceRange.type === 'cheap') {
+          candidateTours.sort((a, b) => normalizePrice(a.price) - normalizePrice(b.price));
+        } else if (priceRange.type === 'expensive') {
+          candidateTours.sort((a, b) => normalizePrice(b.price) - normalizePrice(a.price));
+        }
+
+        logger.info('price_filtered_before_matching', {
+          before,
+          after: candidateTours.length,
+          type: priceRange.type,
+          max: priceRange.max
+        });
+      }
 
       // ✅ Analyze tour characteristics
       const tourCharMap = await analyzeTourCharacteristics(candidateTours, itineraryMap);
@@ -1015,54 +1098,6 @@ if (searchDate) {
       // ✅ Smart matching nếu có intent hợp lệ
       if (userIntent && (userIntent.keywords?.length > 0 || userIntent.desired_motivations?.length > 0)) {
         matchedTours = await smartMatchTours(candidateTours, itineraryMap, userIntent, tourCharMap);
-
-
-// 🔎 DEBUG GIÁ SAU SMART MATCH
-matchedTours.forEach(t => {
-  const normalizedPrice = normalizePrice(t.price);
-  logger.info('price_debug', {
-    tour: t.name,
-    rawPrice: t.price,
-    normalizedPrice
-  });
-});
-
-        
-
-if (priceRange?.type === 'budget') {
-  matchedTours = matchedTours.filter(t => {
-    const price = normalizePrice(t.price);
-    if (!price) return false;
-    return price <= priceRange.max;
-  });
-
-  logger.info('price_budget_applied', {
-    after: matchedTours.length,
-    max: priceRange.max
-  });
-}
-// ✅ FILTER GIÁ CHO RANGE (BẮT BUỘC)
-if (priceRange?.type === 'range') {
-  const before = matchedTours.length;
-
-  matchedTours = matchedTours.filter(t => {
-    const price = normalizePrice(t.price);
-    if (!price) return false;
-    return price >= priceRange.min && price <= priceRange.max;
-  });
-
-  logger.info('price_range_applied', {
-    before,
-    after: matchedTours.length,
-    min: priceRange.min,
-    max: priceRange.max
-  });
-}
-
-
-
-
-        
         logger.info('smart_match_result', {
           matchedCount: matchedTours.length,
           topScore: matchedTours[0]?.matchScore,
