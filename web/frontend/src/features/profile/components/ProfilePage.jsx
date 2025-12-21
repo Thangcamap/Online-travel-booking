@@ -1033,13 +1033,13 @@ const ProfilePage = () => {
             <p><b>Tour:</b> {currentPayment.tour_name}</p>
             <p><b>Số tiền:</b> {Number(currentPayment.amount).toLocaleString("vi-VN")}đ</p>
 
-            <div className="qr my-4 flex justify-center">
-              <img
-                src={`https://img.vietqr.io/image/970436-9392723042-qr_only.png?amount=${currentPayment.amount}&addInfo=ThanhToan_${currentPayment.payment_id}`}
-                alt="QR"
-                className="rounded shadow-md"
-              />
-            </div>
+<div className="qr my-4 flex justify-center">
+  <img
+    src={`https://img.vietqr.io/image/970436-9392723042-qr_only.png?amount=${currentPayment.amount}&addInfo=ThanhToan_${currentPayment.payment_id}`}
+    alt="QR"
+    className="rounded shadow-md w-48 h-48"
+  />
+</div>
 
             <label className="block text-sm font-medium mb-1">📷 Ảnh xác minh thanh toán:</label>
             <input
