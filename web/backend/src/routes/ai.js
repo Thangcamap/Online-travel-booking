@@ -461,7 +461,7 @@ async function analyzeTourCharacteristics(tours, itineraryMap) {
       logger.info('cache_hit', { type: 'tour_analysis' });
       return cached.data;
     }
-
+// ===========================================
     const toursDescription = tours.slice(0, 20).map((t, i) => {
       const itTexts = (itineraryMap[t.tour_id] || [])
         .map(it => `${it.title}`)
@@ -634,7 +634,7 @@ async function smartMatchTours(tours, itineraryMap, userIntent, tourCharMap) {
           .filter(w => (userIntent.desired_weather || []).includes(w))
           .map(w => weatherLabels[w] || w);
         if (matched.length > 0) {
-          matchReasons.push(`🌤️ ${matched.join(', ')}`);
+          matchReasons.push(` ${matched.join(', ')}`);
         }
       }
 
@@ -680,7 +680,7 @@ async function smartMatchTours(tours, itineraryMap, userIntent, tourCharMap) {
           .filter(v => (userIntent.desired_vibe || []).includes(v))
           .map(v => vibeLabels[v] || v);
         if (matched.length > 0) {
-          matchReasons.push(`💫 ${matched.join(', ')}`);
+          matchReasons.push(` ${matched.join(', ')}`);
         }
       }
 
@@ -705,7 +705,7 @@ async function smartMatchTours(tours, itineraryMap, userIntent, tourCharMap) {
           .filter(m => (userIntent.desired_motivations || []).includes(m))
           .map(m => motLabels[m] || m);
         if (matched.length > 0) {
-          matchReasons.push(`🎯 ${matched.join(', ')}`);
+          matchReasons.push(` ${matched.join(', ')}`);
         }
       }
     }
@@ -716,7 +716,7 @@ async function smartMatchTours(tours, itineraryMap, userIntent, tourCharMap) {
       if (tourName.includes(locLower)) {
         score += 50;
         matchDetails.locationScore = 50;
-        matchReasons.push(`📍 ${userIntent.explicit_location}`);
+        matchReasons.push(` ${userIntent.explicit_location}`);
       }
     }
 
@@ -729,7 +729,7 @@ async function smartMatchTours(tours, itineraryMap, userIntent, tourCharMap) {
     matchDetails.qualityBonus = Math.round(qualityBonus);
 
     if (parseFloat(tour.avg_rating || 0) >= 4.0) {
-      matchReasons.push(`⭐ ${parseFloat(tour.avg_rating).toFixed(1)}/5`);
+      matchReasons.push(` ${parseFloat(tour.avg_rating).toFixed(1)}/5`);
     }
 
     // ============ CONFIDENCE ADJUSTMENT ============
@@ -973,6 +973,32 @@ async function getPreviousTourContext(user_id) {
 
   return null;
 }
+// ============ TRAVEL INTENT VALIDATION ============
+function isTravelRelated(message) {
+  const lowerMsg = message.toLowerCase();
+  
+  // ❌ Non-travel patterns (câu hỏi không du lịch)
+  const nonTravelPatterns = [
+    /^(ai|cái|sao|tại sao|làm sao|bao nhiêu|mấy).+(\?|$)/i,  // Câu hỏi chung
+    /^(cho tôi biết|hãy cho|kể cho|nói cho)/i,
+    /^(python|javascript|java|code|lập trình|học)/i,  // Tech/Học tập
+    /^(tính toán|giải|bài toán)/i,  // Math
+  ];
+  
+  // Kiểm tra non-travel pattern
+  if (nonTravelPatterns.some(pattern => pattern.test(lowerMsg))) {
+    return false;
+  }
+  
+  // ✅ Travel keywords (từ khóa du lịch)
+  const travelKeywords = [
+    'tour', 'du lịch', 'đi', 'tới', 'thăm', 'khám phá',
+    'biển', 'rừng', 'núi', 'thác', 'ngân sách', 'giá',
+    'khách sạn', 'resort', 'trải nghiệm', 'ngày', 'đêm'
+  ];
+  
+  return travelKeywords.some(kw => lowerMsg.includes(kw));
+}
 
 // ============ MAIN CHAT ROUTE ============
 router.post("/chat", async (req, res) => {
@@ -981,6 +1007,34 @@ router.post("/chat", async (req, res) => {
   try {
     const message = validateInput(user_id, rawMessage);
     checkRateLimit(user_id);
+
+        // ✅ THÊM KIỂM TRA NÀY (NGAY SAU checkRateLimit)
+    const isFollowUp = isFollowUpQuestion(message);
+    const isTravelQuery = isTravelRelated(message);
+
+    if (!isTravelQuery && !isFollowUp) {
+      logger.info('non_travel_question_detected', { 
+        message: message.substring(0, 50) 
+      });
+      
+      const aiReply = "Xin lỗi, tôi chỉ hỗ trợ thông tin về du lịch. Bạn có muốn tìm tour du lịch nào không?";
+      
+      await pool.query(
+        `INSERT INTO ai_messages (message_id, user_id, role, message, tours)
+         VALUES (?, ?, 'assistant', ?, ?)`,
+        [uuidv4(), user_id, aiReply, JSON.stringify([])]
+      );
+      
+      return res.json({
+        success: true,
+        reply: aiReply,
+        tours: [],
+        isNonTravelQuestion: true,
+        detectedLocation: null,
+        searchDate: null,
+        isFollowUp: false
+      });
+    }
 
     await pool.query(
       `INSERT INTO ai_messages (message_id, user_id, role, message)
@@ -991,7 +1045,6 @@ router.post("/chat", async (req, res) => {
     const mentionedLocation = extractLocationFromMessage(message);
     const searchDate = extractDate(message);
     const priceRange = extractPriceRange(message);
-    const isFollowUp = isFollowUpQuestion(message);
 
     logger.info('message_analyzed', {
       location: mentionedLocation,

@@ -2,7 +2,7 @@ const express = require("express");
 const { pool } = require("../../config/mysql");
 const router = express.Router();
 
-// 🟢 Thêm địa chỉ mới
+//  Thêm địa chỉ mới
 router.post("/", async (req, res) => {
   const {
     address_line1,
@@ -26,9 +26,9 @@ router.post("/", async (req, res) => {
       [address_id, address_line1, address_line2, city, country, latitude, longitude]
     );
 
-    res.json({ success: true, message: "✅ Đã thêm địa chỉ!", address_id });
+    res.json({ success: true, message: " Đã thêm địa chỉ!", address_id });
   } catch (err) {
-    console.error("❌ Lỗi thêm địa chỉ:", err.message);
+    console.error(" Lỗi thêm địa chỉ:", err.message);
     res.status(500).json({ error: "Lỗi khi lưu địa chỉ!" });
   }
 });

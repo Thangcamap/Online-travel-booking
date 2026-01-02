@@ -69,7 +69,7 @@ function notifyProviderStatusChange(providerId, newStatus) {
 function notifyPaymentStatusChange(userId, paymentData) {
   if (io) {
     io.to(`user_${userId}`).emit("payment_status_changed", paymentData);
-    console.log(`✅ Sent payment status update to user_${userId}:`, paymentData);
+    console.log(` Sent payment status update to user_${userId}:`, paymentData);
   }
 }
 

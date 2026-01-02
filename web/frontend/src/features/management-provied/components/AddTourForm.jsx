@@ -148,7 +148,7 @@ export default function AddTourForm({ providerId, onAdded }) {
         await axios.post(`/tours/${newTourId}/itinerary`, { itinerary });
       }
 
-      alert("✅ Tạo tour thành công!");
+      alert(" Tạo tour thành công!");
       onAdded?.();
 
       setForm({
@@ -403,7 +403,7 @@ export default function AddTourForm({ providerId, onAdded }) {
                   disabled={loading}
                   className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-6 rounded-lg disabled:opacity-50"
                 >
-                  {loading ? "Đang xử lý..." : "✅ Tạo Tour"}
+                  {loading ? "Đang xử lý..." : " Tạo Tour"}
                 </button>
               </div>
             </div>
